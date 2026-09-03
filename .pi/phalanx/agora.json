@@ -1,131 +1,285 @@
 {
   "keys": {
-    "session_started_at": 1788421895858,
-    "objective": {
-      "status": "done",
-      "objective": "Synced all ActionSettings values from tamagooo",
-      "rotationSpeed": 40
+    "session_started_at": 1788453467684,
+    "architecture-research-report": {
+      "project": "TAM — Unity First-Person Narrative Adventure",
+      "unityVersion": "6000.5.10f1",
+      "pipeline": "URP",
+      "language": "C# (netstandard2.1, LangVersion 9.0)",
+      "totalSourceFiles": 41,
+      "directories": [
+        "Core",
+        "Interaction/Actions",
+        "Interaction/Input",
+        "Interaction/Interfaces",
+        "Interaction/Puzzle",
+        "Progressions",
+        "Settings",
+        "UI",
+        "Utility",
+        "FX"
+      ],
+      "architecturalPatterns": {
+        "di": "Hand-rolled Service Locator (DIContainer) — static registry, singleton-per-type, eager-register in Bootstrapper",
+        "bootstrap": "RuntimeInitializeOnLoadMethod(BeforeSceneLoad) → Bootstrapper.Initialize()",
+        "gameLoop": "MonoBehaviour Bridge Pattern — GameDriver.Awake() inits singletons, Update() calls Tick()",
+        "decoupling": "C# events (OnDialogueStarted, OnLineChanged, etc.) with subscribe in Start() / unsubscribe in OnDestroy()",
+        "actions": "Stateless strategy classes (MoveAction, JumpAction, etc.) sharing ActionContext (state object)",
+        "chapterSystem": "IPositionable interface + Progression singleton discovers MonoBehaviours via FindObjectsByType",
+        "dataModel": "ScriptableObjects for all config/settings data (ActionSettings, CardData, DialogueEntry, etc.)",
+        "puzzle": "Event-driven plain C# class (Puzzle) + MonoBehaviour components (PuzzleObject, PuzzleTrigger)",
+        "input": "InputHandle wraps Unity Input System, with enable/disable for mode switching"
+      },
+      "architectureIssues": [
+        {
+          "severity": "high",
+          "category": "DI Pattern",
+          "title": "Service Locator Anti-Pattern",
+          "detail": "DIContainer is a static service locator — dependencies are implicit. Any code can call Get<T>() without declaring its dependencies. No constructor injection, no interface registration, no unit-test-friendly substitution.",
+          "locations": [
+            "Assets/Scripts/Utility/DIContainer.cs",
+            "All *Instance => DIContainer.Get<>() consumers"
+          ],
+          "suggestion": "Consider constructor injection or a proper DI framework (Zenject/Extenject/VContainer). At minimum, pass dependencies via Init() parameters."
+        },
+        {
+          "severity": "high",
+          "category": "Coupling",
+          "title": "Tight Static Coupling to Singletons",
+          "detail": "Every system calls Dialogue.Instance, Progression.Instance, PlayerState.Instance, Gui.Instance, GameplayScene.Instance, Puzzle.Instance directly via static property + DIContainer.Get<T>(). No abstraction boundaries — UI knows about dialogue, dialogue knows about player state, player state knows about GUI.",
+          "locations": [
+            "Across all 8 source directories"
+          ],
+          "suggestion": "Introduce interfaces for core services (IDialogue, IProgression, IGui) and pass them via Init()."
+        },
+        {
+          "severity": "high",
+          "category": "Cohesion",
+          "title": "GameDriver God Object",
+          "detail": "GameDriver is responsible for: initialization orchestration, ticking all systems, event subscription management, holding scene references for ALL systems, and puzzle input lifecycle. Violates Single Responsibility Principle.",
+          "locations": [
+            "Assets/Scripts/Core/GameDriver.cs"
+          ],
+          "suggestion": "Split into per-system drivers or use a feature-flag initialization pipeline."
+        },
+        {
+          "severity": "high",
+          "category": "Missing File",
+          "title": "Puzzle.cs Not Found",
+          "detail": "Puzzle class is referenced by Bootstrapper, GameDriver, and PuzzleTrigger via Puzzle.Instance and DIContainer.Get<Puzzle>(), but no Puzzle.cs file exists under Assets/Scripts/. This will cause a compile error.",
+          "locations": [
+            "Assets/Scripts/Core/Bootstrapper.cs:12",
+            "Assets/Scripts/Core/GameDriver.cs:6",
+            "Assets/Scripts/Interaction/Puzzle/PuzzleTrigger.cs:16"
+          ],
+          "suggestion": "Create Assets/Scripts/Interaction/Puzzle/Puzzle.cs or verify if it was accidentally deleted."
+        },
+        {
+          "severity": "medium",
+          "category": "Duplication",
+          "title": "Duplicated Camera/Input Mode Switching",
+          "detail": "Both GameplayScene.HandleDialogueStarted/Ended and PuzzleTrigger.HandlePuzzleStarted/Exited implement identical camera swap, cursor lock, and input enable/disable logic. This is copy-paste code — adding new modes will require duplicating again.",
+          "locations": [
+            "Assets/Scripts/Core/GameplayScene.cs",
+            "Assets/Scripts/Interaction/Puzzle/PuzzleTrigger.cs"
+          ],
+          "suggestion": "Extract into a shared GameModeStack or ModalInputManager that handles push/pop of input modes."
+        },
+        {
+          "severity": "medium",
+          "category": "Performance",
+          "title": "FindObjectsByType in Warm Paths",
+          "detail": "GameplayScene calls FindAnyObjectByType<InputHandle>() every time dialogue starts or ends (HandleDialogueStarted, HandleDialogueEnded). Similarly in Bed.SleepSequence and NPC methods. Find operations are expensive — should cache references.",
+          "locations": [
+            "Assets/Scripts/Core/GameplayScene.cs:43,73",
+            "Assets/Scripts/Progressions/Bed.cs:78,87",
+            "Assets/Scripts/Progressions/Progression.cs:23"
+          ],
+          "suggestion": "Cache InputHandle, NPC references as fields in GameplayScene or use a register pattern."
+        },
+        {
+          "severity": "medium",
+          "category": "State Management",
+          "title": "No State Machine / Scene Management",
+          "detail": "Game state is ad-hoc: CurrentChapter int, puzzle IsActive bool, dialogue IsDialogueActive bool. No explicit game state machine or scene loading manager. Chapter advancement and puzzle transitions are fire-and-forget with no validation.",
+          "locations": [
+            "Assets/Scripts/Core/GameplayScene.cs",
+            "Puzzle (missing)",
+            "Assets/Scripts/Progressions/Progression.cs"
+          ],
+          "suggestion": "Introduce a GameState enum (Exploring, Dialogue, Puzzle, Sleeping...) and a state stack for structured transitions."
+        }
+      ],
+      "patternIssues": [
+        {
+          "severity": "medium",
+          "category": "Memory",
+          "title": "DIContainer Re-registration Leak",
+          "detail": "When Inject<T>() is called for an already-registered type, it Disposes the old cache entry but the old _instance reference could still be held by external code. Only the static slot is nulled.",
+          "locations": [
+            "Assets/Scripts/Utility/DIContainer.cs:43"
+          ],
+          "suggestion": "Replace Cache<T> with proper factory-based registration that allows lifecycle management."
+        },
+        {
+          "severity": "low",
+          "category": "Safety",
+          "title": "IReadOnlyList Wrapping Mutable List",
+          "detail": "PlayerState.OwnedCards returns _ownedCards.AsReadOnly(), which only prevents adding/removing. The card ScriptableObject instances inside are still mutable by external code.",
+          "locations": [
+            "Assets/Scripts/Progressions/PlayerState.cs:11"
+          ],
+          "suggestion": "Return a copy or use System.Collections.Immutable if appropriate."
+        },
+        {
+          "severity": "medium",
+          "category": "Naming",
+          "title": "Inconsistent Namespaces",
+          "detail": "Some files use root namespace 'Settings' (folder-level), others use 'Assets.Scripts.Settings'. Similarly 'Utility' vs 'Assets.Scripts.Utility'. Creates confusion about assembly boundaries.",
+          "locations": [
+            "Assets/Scripts/Settings/*",
+            "Assets/Scripts/Utility/*"
+          ],
+          "suggestion": "Normalize to 'Assets.Scripts.Settings' and 'Assets.Scripts.Utility' for consistency."
+        },
+        {
+          "severity": "medium",
+          "category": "Safety",
+          "title": "Event Subscription Lifecycle Risk",
+          "detail": "Subscriptions happen in Start(), unsubscriptions in OnDestroy(). If a GameObject is deactivated (SetActive(false)) without being destroyed, OnDestroy won't fire and event handlers leak — the GC can't collect the subscriber.",
+          "locations": [
+            "Assets/Scripts/Core/GameDriver.cs:37-42",
+            "Assets/Scripts/Core/GuiGameDriver.cs:23-31",
+            "Assets/Scripts/Interaction/Puzzle/PuzzleTrigger.cs:23-29"
+          ],
+          "suggestion": "Use weak event pattern, or ensure OnDisable also unsubscribes."
+        },
+        {
+          "severity": "low",
+          "category": "Robustness",
+          "title": "Coroutine Not Stopped on Deactivation",
+          "detail": "NPC.ApplyExpression starts BlendToExpression coroutine. If NPC is deactivated mid-blend, the coroutine continues running or silently fails. No cleanup on OnDisable.",
+          "locations": [
+            "Assets/Scripts/Interaction/NPC.cs:137"
+          ],
+          "suggestion": "Track coroutine references and stop them in OnDisable."
+        },
+        {
+          "severity": "low",
+          "category": "Consistency",
+          "title": "Mixed Serialization Attributes",
+          "detail": "GameDriver uses [SerializeReference] for _dialogSettings (polymorphic serialization) but [SerializeField] for all other fields. No clear rationale for the difference.",
+          "locations": [
+            "Assets/Scripts/Core/GameDriver.cs:17"
+          ],
+          "suggestion": "Use [SerializeField] consistently unless polymorphic substitution is intended."
+        },
+        {
+          "severity": "medium",
+          "category": "Architecture",
+          "title": "Chapter System Uses FindObjectsByType for Discovery",
+          "detail": "Progression.Init() calls FindObjectsByType<MonoBehaviour>() and filters for IPositionable. This is expensive and fragile — newly spawned positionables won't be found unless RegisterPositionable is called explicitly.",
+          "locations": [
+            "Assets/Scripts/Progressions/Progression.cs:23-26"
+          ],
+          "suggestion": "Use an explicit registration pattern (RegisterPositionable) or a ScriptableObject event channel for discovery."
+        }
+      ],
+      "positivePatterns": [
+        "Plain C# singletons (not MonoBehaviours) for core logic — testable, no scene lifecycle dependency",
+        "ScriptableObjects for data-driven settings — enables designer iteration without code changes",
+        "Event-driven decoupling between Dialogue ↔ GameplayScene ↔ Gui — works well for cross-system communication",
+        "Stateless action classes with shared context — clean separation of input handling from game logic",
+        "IPositionable interface for chapter system — polymorphic positioning of any actor",
+        "Coroutines used for sequenced visual effects (fade, teleport, footprint reveal) — appropriate use"
+      ]
+    },
+    "lochagos-di-refactor-plan": {
+      "phase": "plan completed",
+      "approach": "Two-phase: Phase A (parallel interfaces + compat layers) → Phase B (teardown of old infrastructure)",
+      "phases": {
+        "0": "Define 6 interfaces in Assets/Scripts/Interfaces/ (IGui, IDialogue, IPlayerState, IGameplayScene, IProgression, IPuzzle)",
+        "1": "Leaf services (Level 0) implement interfaces, keep static Instance for compat",
+        "2": "Dependent services (Level 1) accept interface refs in Init(), replace internal static calls",
+        "3": "Create ServiceHub temporary container, refactor all consumers to use ServiceHub.XXX instead of XXX.Instance",
+        "4": "Delete Bootstrapper, DIContainer, static Instance props, ServiceHub — GameDriver becomes sole composite root with new T() + explicit Init() wiring"
+      },
+      "steps": 17,
+      "totalFilesChanged": 18,
+      "newFiles": 7,
+      "notes": "Puzzle.cs must be created first (currently missing). GameDriver becomes composite root. ServiceHub is temporary — deleted in Phase B. No DI framework required for 6 services."
     }
   },
   "messages": [],
   "log": [
     {
-      "ts": 1788421957408,
+      "ts": 1788453508391,
       "event": "dispatch_start",
       "role": "psiloi",
-      "detail": "Explore the project structure under C:\\Users\\usaree\\rice\\tam to understand what kind of project this is (Unreal Engine, Unity, etc.), naming conventions, and where data settings / config structs typically live. Report back with relevant directories, existing examples of similar structs or settings classes, and file naming patterns."
+      "detail": "Explore the project root at C:\\Users\\usaree\\rice\\tam. List top-level files and directories, identify the project type, build system, language(s), framework, and any configuration files (package.json, CMakeLists.txt, csproj, sln, pubspec.yaml, etc.). Report all findings to agora key 'psiloi-project-overview'."
     },
     {
-      "ts": 1788422015915,
+      "ts": 1788453508392,
+      "event": "dispatch_start",
+      "role": "psiloi",
+      "detail": "Scan all source files in the project at C:\\Users\\usaree\\rice\\tam. Identify every directory with source code (excluding node_modules, .git, build artifacts). For each source directory, list the filenames and their extensions. Report to agora key 'psiloi-source-map'."
+    },
+    {
+      "ts": 1788453604840,
       "event": "dispatch_ok",
       "role": "psiloi",
       "detail": "attempt 1"
     },
     {
-      "ts": 1788422732184,
-      "event": "dispatch_start",
-      "role": "psiloi",
-      "detail": "Full reconnaissance of C:\\Users\\usaree\\rice\\tam\\Assets\\Scripts — list ALL files recursively with their sizes and modification dates. Also list all .asset files under Assets/Settings/. Then read the key Core files: GameDriver.cs, GameScene.cs, PlayerState.cs, ProgressionManager.cs, UIManager.cs, Bootstrapper.cs, and Dialogue.cs. Also read NPC/NPC.cs, and any Puzzle files. I need to understand the full game architecture to know what an MVP needs."
-    },
-    {
-      "ts": 1788422862393,
+      "ts": 1788453649557,
       "event": "dispatch_ok",
       "role": "psiloi",
       "detail": "attempt 1"
     },
     {
-      "ts": 1788424227718,
-      "event": "dispatch_start",
-      "role": "psiloi",
-      "detail": "Examine C:\\Users\\usaree\\rice\\tamagooo\\tamagooo\\Assets\\Scripts and find how the player GameObject is set up. Specifically:\n1. Find the player prefab or GameObject setup (look for player prefabs, InputHandle, CrosshairInteractor, ActionControl)\n2. Read the InputHandle.cs and CrosshairInteractor.cs to see how they get references\n3. Find any GameDriver or scene setup that wires the player\n4. Note any differences from the tam project at C:\\Users\\usaree\\rice\\tam"
-    },
-    {
-      "ts": 1788424274471,
-      "event": "dispatch_ok",
-      "role": "psiloi",
-      "detail": "attempt 1"
-    },
-    {
-      "ts": 1788424761867,
-      "event": "dispatch_start",
-      "role": "lochagos-verify",
-      "detail": "Verify the fix for NullReferenceException in ActionControl.Start() at line 36. The fix moved action class construction (CrouchAction, JumpAction, MoveAction, InteractAction, SkipLineAction) from Start() into Initialize(), and added a guard in Start() that logs an error and returns early if _initialized is false. Confirm: 1) The build compiles with 0 errors 0 warnings. 2) Read the updated ActionControl.cs to confirm the fix is correct — specifically that Initialize() creates all actions and sets _initialized=true before Start() can fire. 3) Verify that GameDriver.Awake() calls Initialize() after creating the player GameObject, ensuring the action objects exist before any Update() tick."
-    },
-    {
-      "ts": 1788424772225,
-      "event": "dispatch_fail",
-      "role": "lochagos-verify",
-      "detail": "attempt 1: aborted"
-    },
-    {
-      "ts": 1788424772242,
-      "event": "dispatch_fail",
-      "role": "lochagos-verify",
-      "detail": "attempt 2: aborted"
-    },
-    {
-      "ts": 1788424791299,
-      "event": "dispatch_escalate",
-      "role": "lochagos-verify",
-      "detail": "shield_wall exhausted for \"lochagos-verify\" after 2 attempt(s). Last error: aborted."
-    },
-    {
-      "ts": 1788430205261,
+      "ts": 1788454049859,
       "event": "dispatch_start",
       "role": "lochagos-build",
-      "detail": "Run the \"Tam → Setup MVP Scene\" menu item in the Unity Editor to create a fully wired MVP scene. Steps:\n1. Use Unity MCP's Unity_RunCommand to execute a script that calls EditorApplication.ExecuteMenuItem(\"Tam/Setup MVP Scene\")\n2. After execution, verify the scene was created by checking Assets/Scenes/MVP.unity exists\n3. Report success or any errors returned"
+      "detail": "Plan a targeted refactor of the Dependency Injection pattern in the TAM Unity project. Current state: a hand-rolled Service Locator (DIContainer) with static singleton-per-type registration. All systems (Dialogue, Progression, PlayerState, Gui, GameplayScene, Puzzle) are tightly coupled via direct static access (Dialogue.Instance, Gui.Instance, etc.).\n\nGoals:\n1. Replace the service locator with a proper DI pattern — constructor injection through Init() methods\n2. Introduce interfaces (IDialogue, IProgression, IGui, IPlayerState, IGameplayScene, IPuzzle) for core services \n3. Break implicit coupling by making dependencies explicit\n4. Keep the migration incremental — don't break the working game\n\nConstraints:\n- Unity project, plain C# singletons (not MonoBehaviours)\n- GameDriver MonoBehaviour is the current orchestration point\n- Bootstrapper uses RuntimeInitializeOnLoadMethod(BeforeSceneLoad)\n- 41 source files total\n\nDeliver: A concrete, file-by-file refactor plan stored in agora key 'lochagos-di-refactor-plan' with:\n- Which files to change and in what order\n- Interface definitions needed\n- How Init() signatures should change\n- How DIContainer can be phased out or repurposed\n- A safe migration strategy (parallel interfaces, one system at a time)"
     },
     {
-      "ts": 1788430214715,
+      "ts": 1788454076535,
       "event": "dispatch_fail",
       "role": "lochagos-build",
       "detail": "attempt 1: aborted"
     },
     {
-      "ts": 1788430214726,
+      "ts": 1788454076551,
       "event": "dispatch_fail",
       "role": "lochagos-build",
       "detail": "attempt 2: aborted"
     },
     {
-      "ts": 1788430219352,
+      "ts": 1788454077912,
       "event": "dispatch_fail",
       "role": "lochagos-build",
       "detail": "oracle retry failed"
     },
     {
-      "ts": 1788430219354,
+      "ts": 1788454077914,
       "event": "dispatch_escalate",
       "role": "lochagos-build",
       "detail": "shield_wall exhausted for \"lochagos-build\" after 2 attempt(s). Last error: aborted."
     },
     {
-      "ts": 1788430328515,
+      "ts": 1788454114232,
       "event": "dispatch_start",
-      "role": "psiloi",
-      "detail": "Use Unity MCP tool Unity_RunCommand to execute a C# script that lists ALL GameObjects in the current active scene hierarchy with their components, names, positions, and tags. Also check if the scene is SampleScene or MVP. Return the full hierarchy."
+      "role": "lochagos-research",
+      "detail": "Plan a targeted refactor of the Dependency Injection pattern in the TAM Unity project. The full architecture analysis is in agora key 'architecture-research-report'.\n\nCurrent state: a hand-rolled Service Locator (DIContainer) with static singleton-per-type registration. Every system accesses others via static Instance properties backed by DIContainer.Get<T>(). The codebase has 41 C# files across 10 directories.\n\nThe refactor must:\n1. Replace the service locator with explicit constructor injection via Init() methods\n2. Introduce interfaces (IDialogue, IGui, IPlayerState, IProgression, IGameplayScene, IPuzzle) for core services\n3. Make all dependencies explicit — no more hidden Get<T>() calls\n4. Be incremental and safe — one system at a time, parallel interfaces, no breaking changes mid-step\n\nKey files to plan around:\n- Assets/Scripts/Utility/DIContainer.cs — the current registry, keep as fallback during migration\n- Assets/Scripts/Core/Bootstrapper.cs — eager registration point\n- Assets/Scripts/Core/GameDriver.cs — MonoBehaviour bridge, currently holds all scene refs and drives init\n- Assets/Scripts/Progressions/Dialogue.cs — depends on PlayerState, NPC\n- Assets/Scripts/Progressions/PlayerState.cs — depends on Gui\n- Assets/Scripts/UI/Gui.cs — depends on nothing but provides UI services\n- Assets/Scripts/Progressions/Progression.cs — finds IPositionable via FindObjectsByType\n- Assets/Scripts/Core/GameplayScene.cs — depends on Dialogue\n- Assets/Scripts/Interaction/Puzzle/PuzzleTrigger.cs — depends on Puzzle\n- Assets/Scripts/Interaction/NPC.cs — depends on Dialogue\n\nDeliver a detailed file-by-file plan stored in agora key 'lochagos-di-refactor-plan' with:\n- Ordered migration steps (which system to convert first, second, etc.)\n- Exact interface definitions needed\n- How Init() signatures should change for each system\n- A fallback/compat strategy so the game compiles at every step\n- How DIContainer can be phased out or repurposed"
     },
     {
-      "ts": 1788430433203,
+      "ts": 1788454586577,
       "event": "dispatch_ok",
-      "role": "psiloi",
-      "detail": "attempt 1"
-    },
-    {
-      "ts": 1788440853018,
-      "event": "dispatch_start",
-      "role": "psiloi",
-      "detail": "Read the file C:/Users/usaree/rice/tamagooo/tamagooo/Assets/Settings/ActionSettings.asset and extract EVERY numeric value for every setting field. Return the complete YAML block with values only, no commentary."
-    },
-    {
-      "ts": 1788440869780,
-      "event": "dispatch_ok",
-      "role": "psiloi",
+      "role": "lochagos-research",
       "detail": "attempt 1"
     }
   ],
   "attempts": {
-    "dispatch:lochagos-verify": 2,
     "dispatch:lochagos-build": 2
   }
 }

@@ -41,7 +41,7 @@ Shader "TextMeshPro/Sprite"
 		Cull [_CullMode]
 		Lighting Off
 		ZWrite Off
-		ZTest [unity_GUIZTestMode]
+		ZTest [unity_GuiZTestMode]
 		Blend SrcAlpha OneMinusSrcAlpha
 		ColorMask [_ColorMask]
 
