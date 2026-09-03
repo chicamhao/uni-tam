@@ -6,6 +6,8 @@ using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.Settings;
+using Assets.Scripts.Puzzle;
 
 /// <summary>
 /// Thin MonoBehaviour bridge that sits in the scene and:
@@ -47,22 +49,12 @@ public class GameDriver : MonoBehaviour
 
     private void Awake()
     {
-        // Wire scene references into plain-C# singletons.
-        ProgressionManager.Instance.Init(spawnPoints, chapterSettings);
-        PlayerState.Instance.Init(cardReturn, defaultNPCCards);
-        UIManager.Instance.Init(
-            fadeOverlay, toastText, dialoguePanel, npcNameText, lineText,
-            cardSelectionPanel, cardListContainer, cardButtonPrefab);
-        GameplayScene.Instance.Init(playerCamera);
-        Puzzle.Instance.Init(puzzleCamera);
-
-        // Wire ActionControl — a MonoBehaviour on the player GameObject.
+        // ── Player FIRST (before any Init that could throw) ──────────────────
         if (playerActionControl == null)
             playerActionControl = FindAnyObjectByType<ActionControl>();
 
         if (playerActionControl == null)
         {
-            // Create the player GameObject at runtime.
             var playerGO = new GameObject("Player");
             playerGO.tag = "Player";
             playerGO.AddComponent<CharacterController>();
@@ -74,6 +66,15 @@ public class GameDriver : MonoBehaviour
             actionSettingsAsset = ScriptableObject.CreateInstance<ActionSettings>();
 
         playerActionControl.Initialize(actionSettingsAsset);
+
+        // ── Singletons (may throw if inspector refs are missing) ─────────────
+        ProgressionManager.Instance.Init(spawnPoints, chapterSettings);
+        PlayerState.Instance.Init(cardReturn, defaultNPCCards);
+        UIManager.Instance.Init(
+            fadeOverlay, toastText, dialoguePanel, npcNameText, lineText,
+            cardSelectionPanel, cardListContainer, cardButtonPrefab);
+        GameplayScene.Instance.Init(playerCamera);
+        Puzzle.Instance.Init(puzzleCamera);
     }
 
     private void OnEnable()

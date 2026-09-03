@@ -11,22 +11,30 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 501907747d116db4991ee278abaf6691, type: 3}
   m_Name: ActionSettings
-  m_EditorClassIdentifier: 
-  QuitHoldTime: 3
+  m_EditorClassIdentifier: Assembly-CSharp::Settings.ActionSettings
   Move:
-    RotationSpeed: 200
-    MaxSpeedOnGround: 13
-    MovementSharpnessOnGround: 15
-    SprintSpeedModifier: 1.5
+    RotationSpeed: 3
+    MaxSpeedOnGround: 5
+    MovementSharpnessOnGround: 5
+    SprintSpeedModifier: 1.65
+    PickableModifierCoefficient: 0.1
   Jump:
-    JumpForce: 9
-    MaxSpeedInAir: 25
-    AccelerationSpeedInAir: 25
-    GravityDownForce: 12
+    JumpForce: 6.5
+    MaxSpeedInAir: 7
+    AccelerationSpeedInAir: 0.5
+    GravityDownForce: 15
     CapsuleHeightStanding: 1.8
   Crouch:
     CameraHeightRatio: 0.9
     CrouchingSharpness: 10
     CapsuleHeightStanding: 1.8
-    CapsuleHeightCrouching: 0.9
-    MaxSpeedCrouchedRatio: 0.5
+    CapsuleHeightCrouching: 0.7
+    MaxSpeedCrouchedRatio: 0.2
+  Interact:
+    ThrowForce: 10
+  Stamina:
+    MaxStamina: 150
+    StaminaRegenRate: 20
+    StaminaConsumptionRate: 30
+    StaminaRegenDelay: 1
+  QuitHoldTime: 3

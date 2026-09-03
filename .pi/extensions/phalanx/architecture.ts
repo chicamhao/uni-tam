@@ -343,11 +343,7 @@ roles:
     tier: specialist
     reports_to: lochagos
     writes_to: [agora]
-    direct_reports:
-      - id: kerux
-        tool: [note, code]
-      - id: nomophylax
-        tool: this_file
+    direct_reports: []
   agora:
     tier: infrastructure
   oracle:
@@ -430,7 +426,7 @@ export function isHopliteAgent(name: string): boolean {
 /**
  * Which target roles a source role may dispatch, per the architecture.
  * strategos -> psiloi, lochagos (any domain), and hoplite direct reports
- *              (kerux/nomophylax, which bypass lochagoi).
+ *              (direct reports, which bypass lochagoi).
  * lochagos  -> hoplites (the `dispatches: [hoplites]` entry).
  * psiloi / hoplites dispatch nothing.
  */

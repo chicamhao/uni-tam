@@ -49,7 +49,8 @@ namespace Actions
 
             _context.Controller.center = Vector3.up * (_context.Controller.height * 0.5f);
 
-            Camera.main.transform.localPosition = Vector3.Lerp(Camera.main.transform.localPosition,
+            if (Camera.main != null)
+                Camera.main.transform.localPosition = Vector3.Lerp(Camera.main.transform.localPosition,
                 Vector3.up * (height * _settings.CameraHeightRatio), _settings.CrouchingSharpness * Time.deltaTime);
         }
 
@@ -57,7 +58,8 @@ namespace Actions
         {
             _context.Controller.height = _settings.CapsuleHeightStanding;
             _context.Controller.center = Vector3.up * (_context.Controller.height * 0.5f);
-            Camera.main.transform.localPosition = Vector3.up * (_context.Controller.height * _settings.CameraHeightRatio);
+            if (Camera.main != null)
+                Camera.main.transform.localPosition = Vector3.up * (_context.Controller.height * _settings.CameraHeightRatio);
         }
     }
 }

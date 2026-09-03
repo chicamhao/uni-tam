@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using NPCs;
+using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -199,7 +201,7 @@ public class UIManager
         foreach (var card in availableCards)
         {
             GameObject btnObj = UnityEngine.Object.Instantiate(_cardButtonPrefab, _cardListContainer);
-            var btn = btnObj.GetComponent<CardSelectionButton>();
+            var btn = btnObj.GetComponent<Core.CardSelectionButton>();
             if (btn != null)
                 btn.Setup(card, () =>
                 {

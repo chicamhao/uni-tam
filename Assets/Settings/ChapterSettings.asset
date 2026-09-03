@@ -9,7 +9,27 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a1b2c3d4e5f67890123456789abcdef01, type: 3}
+  m_Script: {fileID: 11500000, guid: e38e993a976d4cd4c9b0e407e2833752, type: 3}
   m_Name: ChapterSettings
   m_EditorClassIdentifier: 
-  Entries: []
+  Entries:
+  - ActorID: player
+    Chapter: 1
+    SpawnPointID: Spawn_Player_Start
+    Anim: {fileID: 0}
+    IsVisible: 1
+  - ActorID: npc_guard
+    Chapter: 1
+    SpawnPointID: Spawn_Guard
+    Anim: {fileID: 0}
+    IsVisible: 1
+  - ActorID: player
+    Chapter: 2
+    SpawnPointID: Spawn_Player_Ch2
+    Anim: {fileID: 0}
+    IsVisible: 1
+  - ActorID: npc_guard
+    Chapter: 2
+    SpawnPointID: Spawn_Guard_Ch2
+    Anim: {fileID: 0}
+    IsVisible: 0

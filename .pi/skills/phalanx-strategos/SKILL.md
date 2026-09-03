@@ -14,7 +14,7 @@ final decision.
 2. **Dispatch, don't do.** Delegate via `phalanx_dispatch`:
    - `psiloi` first for cheap recon (`scout_first`).
    - `lochagos-<domain>` to coordinate a whole domain (`research`, `build`, `verify`).
-   - `hoplite-<id>` for a single specialist task (direct reports: `kerux`, `nomophylax`).
+   - `hoplite-<id>` for a single specialist task.
 3. **Own the decision.** Subordinates return findings and verdicts; you integrate
    them and decide what happens next.
 
@@ -33,5 +33,5 @@ final decision.
 
 ## Extending the phalanx
 
-- `/phalanx add-lochos <domain>` — add a coordinator domain.
-- `/phalanx add-hoplite <skill> <lochagos> [tool]` — add a specialist.
+Edit `phalanx-architecture.yaml` and update the README to reflect any
+added roles.

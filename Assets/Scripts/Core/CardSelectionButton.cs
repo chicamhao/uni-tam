@@ -1,29 +1,33 @@
+using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// UI button used in the card selection panel.
-/// </summary>
-public class CardSelectionButton : MonoBehaviour
+namespace Core
 {
-    [SerializeField] private TextMeshProUGUI nameText;
-    [SerializeField] private TextMeshProUGUI descText;
-    [SerializeField] private Image iconImage;
-    [SerializeField] private Button button;
-
-    private CardData cachedCard;
-
-    public void Setup(CardData card, System.Action onClick)
+    /// <summary>
+    /// UI button used in the card selection panel.
+    /// </summary>
+    public class CardSelectionButton : MonoBehaviour
     {
-        cachedCard = card;
-        nameText.text = card.DisplayName;
-        descText.text = card.Description;
-        if (card.Icon != null)
-            iconImage.sprite = Sprite.Create(card.Icon, new Rect(0, 0, card.Icon.width, card.Icon.height), Vector2.zero);
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => onClick?.Invoke());
-    }
+        [SerializeField] private TextMeshProUGUI _nameText;
+        [SerializeField] private TextMeshProUGUI _descText;
+        [SerializeField] private Image _iconImage;
+        [SerializeField] private Button _button;
 
-    public CardData GetCard() => cachedCard;
+        private CardData _cachedCard;
+
+        public void Setup(CardData card, System.Action onClick)
+        {
+            _cachedCard = card;
+            _nameText.text = card.DisplayName;
+            _descText.text = card.Description;
+            if (card.Icon != null)
+                _iconImage.sprite = Sprite.Create(card.Icon, new Rect(0, 0, card.Icon.width, card.Icon.height), Vector2.zero);
+            _button.onClick.RemoveAllListeners();
+            _button.onClick.AddListener(() => onClick?.Invoke());
+        }
+
+        public CardData GetCard() => _cachedCard;
+    }
 }

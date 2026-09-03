@@ -134,17 +134,17 @@ namespace Input
 
         public bool GetUseInputDown()
         {
-            return CanProcessInput() && _useAction.WasPressedThisFrame();
+            return CanProcessInput() && _useAction != null && _useAction.WasPressedThisFrame();
         }
 
         public bool GetSkipInputDown()
         {
-            return CanProcessInput() && _skipAction.WasPressedThisFrame();
+            return CanProcessInput() && _skipAction != null && _skipAction.WasPressedThisFrame();
         }
 
         public bool GetQuitInputHeld()
         {
-            return _quitAction.IsPressed();
+            return _quitAction != null && _quitAction.IsPressed();
         }
 
         public bool GetQuitInputDown()
@@ -159,7 +159,7 @@ namespace Input
 
         public bool GetStartInputDown()
         {
-            return _startAction.WasPressedThisFrame();
+            return _startAction != null && _startAction.WasPressedThisFrame();
         }
 
         public bool IsQuitActionElapsed(float duration)

@@ -9,6 +9,8 @@ namespace Settings
         public MoveSettings Move;
         public JumpSettings Jump;
         public CrouchSettings Crouch;
+        public InteractSettings Interact;
+        public StaminaSettings Stamina;
 
         [Tooltip("Time in seconds the quit action needs to be held to quit the game")]
         public float QuitHoldTime = 3f;
@@ -28,6 +30,9 @@ namespace Settings
 
         [Tooltip("Multiplication for the sprint speed (based on grounded speed)")]
         public float SprintSpeedModifier = 1.5f;
+
+        [Range(0f, 1f)]
+        public float PickableModifierCoefficient = 0.1f;
     }
 
     [Serializable]
@@ -67,5 +72,27 @@ namespace Settings
         [Tooltip("Max movement speed when crouching")]
         [Range(0, 1)]
         public float MaxSpeedCrouchedRatio = 0.5f;
+    }
+
+    [Serializable]
+    public sealed class InteractSettings
+    {
+        public float ThrowForce = 10f;
+    }
+
+    [Serializable]
+    public sealed class StaminaSettings
+    {
+        [Tooltip("Maximum stamina the player can have")]
+        public float MaxStamina = 100f;
+
+        [Tooltip("Stamina regeneration rate per second when not sprinting")]
+        public float StaminaRegenRate = 20f;
+
+        [Tooltip("Stamina consumption rate per second when sprinting")]
+        public float StaminaConsumptionRate = 30f;
+
+        [Tooltip("Delay in seconds before stamina starts regenerating after sprinting stops")]
+        public float StaminaRegenDelay = 1f;
     }
 }

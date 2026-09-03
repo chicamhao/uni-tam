@@ -8,13 +8,6 @@ description: Dispatch a hoplite specialist for exactly one task with exactly one
 A **hoplite** executes exactly one task with exactly one tool. A task needing two
 tools becomes two hoplites.
 
-Two hoplites are direct reports that bypass the lochagoi (they are cross-cutting):
-
-| Hoplite | Job |
-|---------|-----|
-| `hoplite-kerux` | keeps the strategos note and `Scripts/` in sync, either direction, only when told |
-| `hoplite-nomophylax` | applies changes to `phalanx-architecture.yaml` via the extend templates, then logs |
-
 ## When to dispatch
 
 - A single, well-scoped task (one tool).
@@ -23,7 +16,7 @@ Two hoplites are direct reports that bypass the lochagoi (they are cross-cutting
 ## How
 
 ```
-phalanx_dispatch { role: "hoplite-nomophylax", task: "add a verify lochagos to the architecture", tool: "edit" }
+phalanx_dispatch { role: "<hoplite-id>", task: "...", tool: "<tool>" }
 ```
 
 ## Rules

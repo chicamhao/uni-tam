@@ -5,11 +5,11 @@ namespace Utility
 {
     public sealed class Timer : IDisposable
     {
-        float _elapsedTime;
+        private float _elapsedTime;
         public float ElapsedTime => _elapsedTime;
         public float T => _elapsedTime / _duration;
 
-        float _duration = -1;
+        private float _duration = -1;
         public float Duration => _duration;
 
         public bool IsValid() => _duration >= 0;

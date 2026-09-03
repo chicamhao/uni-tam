@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using Interfaces;
 using UnityEngine;
-using Settings;
 using Utility;
+using Assets.Scripts.Settings;
 
 /// <summary>
 /// Manages chapter transitions and IPositionable object states.
@@ -31,8 +32,7 @@ public class ProgressionManager
         _chapterDb = null; // force rebuild on next access
 
         // Discover all IPositionable objects already in the scene.
-        var found = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(
-            FindObjectsSortMode.None);
+        var found = UnityEngine.Object.FindObjectsByType<MonoBehaviour>();
         foreach (var mb in found)
         {
             if (mb is IPositionable pos)

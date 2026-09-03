@@ -1,8 +1,11 @@
 using UnityEngine;
 
-public interface IInteractable
+namespace Interfaces
 {
-    void Interact();
-    string GetPrompt();
-    void SetHighlight(bool highlighted);
+    public interface IInteractable
+    {
+        void Interact();
+        string GetPrompt();
+        void SetHighlight(bool highlighted);
+    }
 }

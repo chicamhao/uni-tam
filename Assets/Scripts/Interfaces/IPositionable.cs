@@ -1,7 +1,11 @@
+using Assets.Scripts.Settings;
 using UnityEngine;
 
-public interface IPositionable
+namespace Interfaces
 {
-    string GetActorID();
-    void ApplyState(ChapterEntry state, Transform spawnPoint);
+    public interface IPositionable
+    {
+        string GetActorID();
+        void ApplyState(ChapterEntry state, Transform spawnPoint);
+    }
 }

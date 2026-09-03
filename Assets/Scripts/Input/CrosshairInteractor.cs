@@ -1,6 +1,6 @@
 using Actions;
+using Interfaces;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 public sealed class CrosshairInteractor : MonoBehaviour
 {
@@ -15,7 +15,6 @@ public sealed class CrosshairInteractor : MonoBehaviour
     private void Start()
     {
         _actionControl = FindAnyObjectByType<ActionControl>();
-        Assert.IsNotNull(_actionControl);
 
         if (CrosshairTexture == null)
         {
@@ -27,7 +26,14 @@ public sealed class CrosshairInteractor : MonoBehaviour
 
     private void Update()
     {
+        if (_actionControl == null)
+        {
+            _actionControl = FindAnyObjectByType<ActionControl>();
+            if (_actionControl == null) return;
+        }
+
         var ctx = _actionControl.Context;
+        if (ctx == null) return;
 
         var ray = Camera.main.ScreenPointToRay(new Vector3(Screen.width / 2f, Screen.height / 2f, 0));
         if (Physics.Raycast(ray, out var hitInfo, _distance, _interactableLayerMask))

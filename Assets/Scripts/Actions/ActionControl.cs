@@ -1,4 +1,6 @@
+using Assets.Scripts.Settings;
 using Input;
+using Interfaces;
 using Settings;
 using UnityEngine;
 
@@ -24,18 +26,25 @@ namespace Actions
         public void Initialize(ActionSettings settings)
         {
             _settings = settings;
-            _context = new ActionContext(_settings,
-                GetComponent<CharacterController>(), GetComponent<InputHandle>());
-            _initialized = true;
-        }
 
-        private void Start()
-        {
+            // Ensure required components exist (defensive — editor/manual setup may miss them)
+            var controller = GetComponent<CharacterController>();
+            if (controller == null)
+                controller = gameObject.AddComponent<CharacterController>();
+
+            var input = GetComponent<InputHandle>();
+            if (input == null)
+                input = gameObject.AddComponent<InputHandle>();
+
+            _context = new ActionContext(_settings, controller, input);
+
             _crouchAction = new CrouchAction(_context, _settings.Crouch);
             _jumpAction = new JumpAction(_context, _settings.Jump);
             _moveAction = new MoveAction(_context, _settings.Move, _settings.Jump, _settings.Crouch);
             _interactAction = new InteractAction(_context);
             _skipLineAction = new SkipLineAction(_context);
+
+            _initialized = true;
         }
 
         private void Update()

@@ -1,5 +1,8 @@
-public interface IClickable
+namespace Interfaces
 {
-    void OnClick();
-    void SetSelected(bool selected);
+    public interface IClickable
+    {
+        void OnClick();
+        void SetSelected(bool selected);
+    }
 }
