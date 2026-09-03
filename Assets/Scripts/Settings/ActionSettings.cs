@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Settings
+namespace Assets.Scripts.Settings
 {
     [CreateAssetMenu(fileName = "ActionSettings", menuName = "ScriptableObjects/ActionSettings", order = 1)]
     public sealed class ActionSettings : ScriptableObject
