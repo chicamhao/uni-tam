@@ -1,8 +1,10 @@
-using Assets.Scripts.Settings;
 using UnityEngine;
+using Assets.Scripts.Settings;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Interaction.Actions
 {
+    /// <summary>Applies upward velocity to the player when grounded and jump input is triggered.</summary>
     public sealed class JumpAction
     {
         private readonly ActionContext _context;

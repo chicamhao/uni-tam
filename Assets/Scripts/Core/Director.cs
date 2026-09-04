@@ -1,18 +1,17 @@
+using UnityEngine;
 using Assets.Scripts.Characters;
 using Assets.Scripts.Interfaces;
 using Assets.Scripts.Interaction.Input;
 using Assets.Scripts.Settings;
-using Settings;
-using UnityEngine;
 
 namespace Assets.Scripts.Core
 {
     /// <summary>
-    /// Scene-level game state — camera, chapter, dialogue mode transitions.
+    /// Directs scene-level presentation modes — camera swap, cursor/input state, and chapter progression.
     /// Plain C# service. Created by GameDriver, dependencies injected via Init().
     /// No static access. Tick() driven by GameDriver.
     /// </summary>
-    public sealed class GameplayScene : IGameplayScene
+    public sealed class Director : IDirector
     {
         private int _currentChapter = 1;
         public int CurrentChapter
@@ -24,6 +23,13 @@ namespace Assets.Scripts.Core
         private Camera _playerCamera;
         private IDialogue _dialogue;
         private IProgression _progression;
+
+        /// <summary>
+        /// Set by GameDriver on Awake() — injected InputHandle.
+        /// </summary>
+        public InputHandle InputHandleRef { get; set; }
+
+        private Actor _activeNpc;
 
         public void Init(Camera playerCamera, IDialogue dialogue, IProgression progression)
         {
@@ -37,50 +43,42 @@ namespace Assets.Scripts.Core
             _dialogue.Update();
         }
 
-        // ── Dialogue camera + input ───────────────────────────────────────────
 
-        public void HandleDialogueStarted(DialogueEntry entry, NPC npc)
+        public void HandleDialogueStarted(DialogueEntry entry, Actor npc)
         {
-            if (npc == null) return;
+            _activeNpc = npc;
 
-            var input = Object.FindAnyObjectByType<InputHandle>();
-            if (input != null) input.DisableInput();
+            InputHandleRef?.DisableInput();
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
 
-            if (_playerCamera != null)
-                _playerCamera.enabled = false;
+            _playerCamera.enabled = false;
 
-            if (npc.conversationCamera != null)
+            if (npc.ConversationCamera != null)
             {
-                npc.conversationCamera.enabled = true;
+                npc.ConversationCamera.enabled = true;
                 Transform head = npc.GetHeadTransform();
                 if (head != null)
-                    npc.conversationCamera.transform.LookAt(head);
+                    npc.ConversationCamera.transform.LookAt(head);
             }
         }
 
         public void HandleDialogueEnded()
         {
-            if (_playerCamera != null)
-                _playerCamera.enabled = true;
+            _playerCamera.enabled = true;
 
-            var npcs = Object.FindObjectsByType<NPC>();
-            foreach (var npc in npcs)
-            {
-                if (npc.conversationCamera != null)
-                    npc.conversationCamera.enabled = false;
-            }
+            if (_activeNpc.ConversationCamera != null)
+                _activeNpc.ConversationCamera.enabled = false;
 
-            var input = Object.FindAnyObjectByType<InputHandle>();
-            if (input != null) input.EnableInput();
+            _activeNpc = null;
+
+            InputHandleRef?.EnableInput();
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
 
-        // ── Chapter ───────────────────────────────────────────────────────────
 
         public void AdvanceChapter()
         {

@@ -1,6 +1,7 @@
+using UnityEngine;
+using UnityEngine.Assertions;
 using Assets.Scripts.Interfaces;
 using Assets.Scripts.Interaction.Input;
-using UnityEngine;
 
 namespace Assets.Scripts.Interaction.Puzzle
 {
@@ -11,21 +12,24 @@ namespace Assets.Scripts.Interaction.Puzzle
     /// </summary>
     public sealed class PuzzleTrigger : MonoBehaviour
     {
-        public Camera puzzleCamera;
-        public Camera playerCamera;
+        public Camera PuzzleCamera;
+        public Camera PlayerCamera;
 
         /// <summary>
         /// Set by GameDriver on Awake() — explicit dependency injection for MonoBehaviours.
         /// </summary>
         public IPuzzle PuzzleRef { get; set; }
 
+        /// <summary>
+        /// Set by GameDriver on Awake() — injected InputHandle.
+        /// </summary>
+        public InputHandle InputHandleRef { get; set; }
+
         private void Start()
         {
-            if (PuzzleRef != null)
-            {
-                PuzzleRef.OnPuzzleStarted += HandlePuzzleStarted;
-                PuzzleRef.OnPuzzleExited += HandlePuzzleExited;
-            }
+            Assert.IsNotNull(PuzzleRef, "PuzzleRef must be set by GameDriver before Start().");
+            PuzzleRef.OnPuzzleStarted += HandlePuzzleStarted;
+            PuzzleRef.OnPuzzleExited += HandlePuzzleExited;
         }
 
         private void OnDestroy()
@@ -47,11 +51,10 @@ namespace Assets.Scripts.Interaction.Puzzle
 
         private void HandlePuzzleStarted()
         {
-            var input = FindAnyObjectByType<InputHandle>();
-            if (input != null) input.DisableInput();
+            InputHandleRef?.DisableInput();
 
-            if (playerCamera != null) playerCamera.enabled = false;
-            if (puzzleCamera != null) puzzleCamera.enabled = true;
+            if (PlayerCamera != null) PlayerCamera.enabled = false;
+            if (PuzzleCamera != null) PuzzleCamera.enabled = true;
 
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
@@ -59,11 +62,10 @@ namespace Assets.Scripts.Interaction.Puzzle
 
         private void HandlePuzzleExited()
         {
-            if (puzzleCamera != null) puzzleCamera.enabled = false;
-            if (playerCamera != null) playerCamera.enabled = true;
+            if (PuzzleCamera != null) PuzzleCamera.enabled = false;
+            if (PlayerCamera != null) PlayerCamera.enabled = true;
 
-            var input = FindAnyObjectByType<InputHandle>();
-            if (input != null) input.EnableInput();
+            InputHandleRef?.EnableInput();
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;

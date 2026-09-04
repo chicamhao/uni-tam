@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Assets.Scripts.Characters;
-using Assets.Scripts.Settings;
-using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.Characters;
+using Assets.Scripts.Settings;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Interfaces
 {
+    /// <summary>Defines the GUI system contract — fades, toasts, card selection, and dialogue display.</summary>
     public interface IGui
     {
         void Tick(float dt);
@@ -17,12 +18,9 @@ namespace Assets.Scripts.Interfaces
         void ShowToast(string message);
         void ShowCardSelection(List<CardDefinition> availableCards, Action<CardDefinition> onCardSelected);
         void HideCardSelection();
-        void HandleDialogueStarted(DialogueEntry entry, NPC npc);
+        void HandleDialogueStarted(DialogueEntry entry, Actor npc);
         void HandleDialogueEnded();
         void HandleLineChanged(DialogueLine line);
-        void Init(Image fadeOverlay, TextMeshProUGUI toastText, GameObject dialoguePanel,
-                  TextMeshProUGUI npcNameText, TextMeshProUGUI lineText,
-                  GameObject cardSelectionPanel, Transform cardListContainer,
-                  GameObject cardButtonPrefab);
+        void Init(GuiContext config);
     }
 }

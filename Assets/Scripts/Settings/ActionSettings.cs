@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Settings
 {
+    /// <summary>ScriptableObject holding all player action settings (move, jump, crouch, interact, stamina).</summary>
     [CreateAssetMenu(fileName = "ActionSettings", menuName = "ScriptableObjects/ActionSettings", order = 1)]
     public sealed class ActionSettings : ScriptableObject
     {
@@ -16,6 +17,7 @@ namespace Assets.Scripts.Settings
         public float QuitHoldTime = 3f;
     }
 
+    /// <summary>Settings for player ground movement speed, rotation, sprint, and sharpness.</summary>
     [Serializable]
     public sealed class MoveSettings
     {
@@ -35,6 +37,7 @@ namespace Assets.Scripts.Settings
         public float PickableModifierCoefficient = 0.1f;
     }
 
+    /// <summary>Settings for player jump force, air speed, acceleration, and gravity.</summary>
     [Serializable]
     public sealed class JumpSettings
     {
@@ -54,6 +57,7 @@ namespace Assets.Scripts.Settings
         public float CapsuleHeightStanding = 1.8f;
     }
 
+    /// <summary>Settings for player crouch capsule height, camera ratio, and speed reduction.</summary>
     [Serializable]
     public sealed class CrouchSettings
     {
@@ -74,12 +78,14 @@ namespace Assets.Scripts.Settings
         public float MaxSpeedCrouchedRatio = 0.5f;
     }
 
+    /// <summary>Settings for player interaction with objects (e.g. throw force).</summary>
     [Serializable]
     public sealed class InteractSettings
     {
         public float ThrowForce = 10f;
     }
 
+    /// <summary>Settings for player stamina — max, regen rate, consumption rate, and regen delay.</summary>
     [Serializable]
     public sealed class StaminaSettings
     {

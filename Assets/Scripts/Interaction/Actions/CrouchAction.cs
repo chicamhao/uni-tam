@@ -1,9 +1,11 @@
+using UnityEngine;
 using Assets.Scripts.Settings;
 using Assets.Scripts.Utility;
-using UnityEngine;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Interaction.Actions
 {
+    /// <summary>Handles player crouch state transitions and capsule height changes.</summary>
     public sealed class CrouchAction
     {
         private readonly ActionContext _context;

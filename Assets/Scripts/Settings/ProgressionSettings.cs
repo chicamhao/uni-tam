@@ -1,9 +1,9 @@
-using Settings;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Scripts.Settings
 {
+    /// <summary>ScriptableObject configuring chapter progression — spawn points, chapter data, and default NPC cards.</summary>
     [CreateAssetMenu(fileName = "ProgressionSettings", menuName = "ScriptableObjects/ProgressionSettings", order = 1)]
     public sealed class ProgressionSettings : ScriptableObject
     {

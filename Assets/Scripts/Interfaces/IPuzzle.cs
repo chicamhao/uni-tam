@@ -2,6 +2,7 @@ using System;
 
 namespace Assets.Scripts.Interfaces
 {
+    /// <summary>Defines a puzzle mini-game lifecycle — init, tick, input management, and events.</summary>
     public interface IPuzzle
     {
         event Action OnPuzzleStarted;

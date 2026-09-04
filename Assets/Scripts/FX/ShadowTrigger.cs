@@ -1,5 +1,3 @@
-using Assets.Scripts.Progressions;
-using Assets.Scripts.Interfaces;
 using UnityEngine;
 
 namespace Assets.Scripts.FX
@@ -10,17 +8,15 @@ namespace Assets.Scripts.FX
     /// </summary>
     public sealed class ShadowTrigger : MonoBehaviour
     {
-        public GameObject shadowFXPrefab;
-        public float activationDelay = 0.5f;
-
-        public IGameplayScene GameplaySceneRef { get; set; }
+        public GameObject ShadowFXPrefab;
+        public float ActivationDelay = 0.5f;
 
         private void OnTriggerEnter(Collider other)
         {
             if (!other.CompareTag("Player")) return;
 
-            if (shadowFXPrefab != null)
-                Instantiate(shadowFXPrefab, transform.position, Quaternion.identity);
+            if (ShadowFXPrefab != null)
+                Instantiate(ShadowFXPrefab, transform.position, Quaternion.identity);
         }
     }
 }

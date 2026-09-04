@@ -1,6 +1,7 @@
 using System.Collections.Generic;
+using UnityEngine.Assertions;
 using Assets.Scripts.Interfaces;
-using Settings;
+using Assets.Scripts.Settings;
 
 namespace Assets.Scripts.Progressions
 {
@@ -16,30 +17,31 @@ namespace Assets.Scripts.Progressions
         public IReadOnlyList<CardDefinition> OwnedCards => _ownedCards.AsReadOnly();
 
         private CardDefinition _cardReturn;
-        private readonly List<CardDefinition> _defaultNPCCards = new();
+        private readonly List<CardDefinition> _defaultActorCards = new();
         private bool _initialized;
 
         // ── Injected dependencies ─────────────────────────────────────────────
-        private IGui _gui;
+        private readonly IGui _gui;
 
         public PlayerState(IGui gui)
         {
+            Assert.IsNotNull(gui);
             _gui = gui;
         }
 
-        public void Init(CardDefinition cardReturn, List<CardDefinition> defaultNPCCards)
+        public void Init(CardDefinition cardReturn, List<CardDefinition> defaultActorCards)
         {
             if (_initialized) return;
             _initialized = true;
 
             _cardReturn = cardReturn;
-            _defaultNPCCards.Clear();
-            if (defaultNPCCards != null)
-                _defaultNPCCards.AddRange(defaultNPCCards);
+            _defaultActorCards.Clear();
+            Assert.IsNotNull(defaultActorCards, "defaultActorCards cannot be null.");
+            _defaultActorCards.AddRange(defaultActorCards);
 
             if (_cardReturn != null)
                 GrantCard(_cardReturn);
-            foreach (var card in _defaultNPCCards)
+            foreach (var card in _defaultActorCards)
             {
                 if (card != null)
                     GrantCard(card);

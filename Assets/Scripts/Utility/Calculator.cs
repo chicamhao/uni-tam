@@ -1,8 +1,9 @@
-using Assets.Scripts.Interaction.Actions;
 using UnityEngine;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Utility
 {
+    /// <summary>Static utility class for physics calculations — capsule geometry, slope reorientation, and standability checks.</summary>
     public static class Calculator
     {
         private static readonly Collider[] _colliders = new Collider[3];

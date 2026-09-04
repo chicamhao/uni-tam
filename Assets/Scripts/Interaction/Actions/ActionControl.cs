@@ -1,14 +1,17 @@
+using UnityEngine;
+using UnityEngine.Assertions;
 using Assets.Scripts.Core;
 using Assets.Scripts.Interaction.Input;
 using Assets.Scripts.Interaction.Interfaces;
 using Assets.Scripts.Settings;
-using UnityEngine;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Interaction.Actions
 {
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(InputHandle))]
-    public sealed class ActionControl : MonoBehaviour, IPositionable
+    /// <summary>Orchestrates all player actions (movement, jump, crouch, interact, skip) each frame.</summary>
+    public sealed class ActionControl : MonoBehaviour
     {
         public ActionContext Context => _context;
         private ActionContext _context;
@@ -30,12 +33,10 @@ namespace Assets.Scripts.Interaction.Actions
             _settings = settings;
 
             var controller = GetComponent<CharacterController>();
-            if (controller == null)
-                controller = gameObject.AddComponent<CharacterController>();
+            Assert.IsNotNull(controller);
 
             var input = GetComponent<InputHandle>();
-            if (input == null)
-                input = gameObject.AddComponent<InputHandle>();
+            Assert.IsNotNull(input);
 
             _context = new ActionContext(_settings, controller, input);
 
@@ -64,23 +65,6 @@ namespace Assets.Scripts.Interaction.Actions
             _interactAction.Interact();
         }
 
-        // --- IPositionable ---
-        public string GetActorID() => "player";
 
-        public void ApplyState(ChapterEntry state, Transform spawnPoint)
-        {
-            if (spawnPoint == null) return;
-
-            var controller = GetComponent<CharacterController>();
-            controller.enabled = false;
-            transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
-            controller.enabled = true;
-
-            if (state.Anim != null)
-            {
-                var animator = GetComponent<Animator>();
-                if (animator != null) animator.Play(state.Anim.name);
-            }
-        }
     }
 }

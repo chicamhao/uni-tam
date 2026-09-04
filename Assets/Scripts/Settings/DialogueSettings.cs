@@ -1,30 +1,33 @@
 using System.Collections.Generic;
-using Settings;
 using UnityEngine;
 
 namespace Assets.Scripts.Settings
 {
+    /// <summary>ScriptableObject holding all dialogue entries.</summary>
     [CreateAssetMenu(fileName = "DialogSettings", menuName = "ScriptableObjects/DialogSettings", order = 1)]
     public sealed class DialogueSettings : ScriptableObject
     {
         public List<DialogueEntry> Entries = new();
     }
 
+    /// <summary>Represents a dialogue triggered by a card for a specific NPC, containing a list of lines.</summary>
+    [System.Serializable]
     public sealed class DialogueEntry
     {
         [Header("Lookup")]
         [Tooltip("CardID that triggers this dialogue (matching CardSettings.CardID)")]
         public string CardID;
 
-        [Tooltip("NPCID that this dialogue belongs to (matching NPC.NPCID)")]
-        public string NPCID;
+        [Tooltip("ActorID that this dialogue belongs to (matching Actor.ActorID)")]
+        public string ActorID;
 
         [Header("Content")]
-        public string NPCDisplayName;
+        public string ActorDisplayName;
 
         public List<DialogueLine> Lines;
     }
 
+    /// <summary>A single line of dialogue with display duration and optional facial expression.</summary>
     [System.Serializable]
     public struct DialogueLine
     {
@@ -33,6 +36,7 @@ namespace Assets.Scripts.Settings
         public ExpressionDefinition Expression;
     }
 
+    /// <summary>Defines a morph target weight and blend time for facial expressions.</summary>
     [System.Serializable]
     public struct MorphTargetValue
     {

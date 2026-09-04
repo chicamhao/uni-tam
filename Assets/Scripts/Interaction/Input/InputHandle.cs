@@ -3,6 +3,7 @@ using UnityEngine.InputSystem;
 
 namespace Assets.Scripts.Interaction.Input
 {
+    /// <summary>Binds and exposes player input actions (move, look, jump, sprint, crouch, interact, quit, skip).</summary>
     public sealed class InputHandle : MonoBehaviour
     {
         [Tooltip("Sensitivity multiplier for moving the camera around")]

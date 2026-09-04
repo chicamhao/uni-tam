@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Assets.Scripts.Interaction.Interfaces;
-using Assets.Scripts.Interfaces;
-using Assets.Scripts.Settings;
 using UnityEngine;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Interaction.Interfaces;
+using Assets.Scripts.Settings;
 
 namespace Assets.Scripts.Progressions
 {

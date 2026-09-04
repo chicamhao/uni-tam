@@ -1,0 +1,67 @@
+# TAM Code Conventions
+# Machine-readable. Source of truth: CONVENTIONS.md
+# Agents: enforce these rules when editing.
+
+naming:
+  pascal_case: [types, methods, properties, public_fields]
+  _camelCase: private_fields
+  camelCase: [locals, parameters]
+  I_prefix: interfaces
+  On_prefix: events
+  Handle_prefix: event_handlers
+  Context_postfix: config_or_context_holder_classes  # e.g., GuiContext, ActionContext
+
+class_structure:
+  sealed_by_default: true
+  one_file_per_class: true
+  using_order: [System*, UnityEngine*, project]
+  using_separator: none  # no blank lines between using groups
+  xml_doc_required: [public types, public methods, public properties]
+
+di:
+  pattern: constructor injection
+  scene_refs: Init() method
+  composite_root: GameDriver
+  prohibited: [static Instance, Singleton, ServiceLocator, FindObjectOfType for core systems]
+
+monobehaviour:
+  service_creation: GameDriver only
+  inspector_state: "[SerializeField] private _camelCase"
+
+events:
+  style: C# events
+  subscription: GameDriver
+  init_only: true
+
+null_checking:
+  init_stage: Assert.IsNotNull
+  require_component: Assert.IsNotNull
+  runtime_guards: optional serialized, state values, GetComponent can-fail
+  events: "?.Invoke()"
+  prohibited_at_init: [is null, is not null, ArgumentNullException, "== null"]
+
+action_pattern:
+  each_action: separate class
+  shared_context: ActionContext
+
+timing:
+  plain_csharp: Timer utility
+  monobehaviour: StartCoroutine
+  smooth: Mathf.Lerp
+
+settings:
+  location: Assets/Scripts/Settings/
+  attributes: [CreateAssetMenu, System.Serializable, Tooltip]
+
+file_organization:
+  domain_folders: Assets/Scripts/<Domain>/
+  context_folder: Assets/Scripts/Context/
+  settings_folder: Assets/Scripts/Settings/
+  interfaces_folder: Assets/Scripts/Interfaces/
+
+formatting:
+  braces: Allman
+  indent: 4 spaces
+  max_line_length: 120
+  string_interpolation: true
+  comments: only-when-unclear  # no inline noise, no obvious-true docs

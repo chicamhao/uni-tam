@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Assets.Scripts.Interfaces;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using Assets.Scripts.Interfaces;
 
 namespace Assets.Scripts.Interaction.Puzzle
 {
@@ -36,17 +37,15 @@ namespace Assets.Scripts.Interaction.Puzzle
         {
             if (!_isActive) return;
 
-            if (UnityEngine.Input.GetMouseButtonDown(0))
+            if (InputSystem.actions.FindAction("Player/Use").WasPressedThisFrame())
                 HandleClick();
 
-            if (UnityEngine.Input.GetKeyDown(KeyCode.Escape))
+            if (InputSystem.actions.FindAction("Player/Start").WasPressedThisFrame())
                 SetActive(false);
         }
 
         private void HandleClick()
         {
-            if (_puzzleCamera == null) return;
-
             var ray = _puzzleCamera.ScreenPointToRay(UnityEngine.Input.mousePosition);
             if (Physics.Raycast(ray, out var hit))
             {

@@ -1,7 +1,8 @@
-using Assets.Scripts.Interfaces;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Core
 {
@@ -13,14 +14,14 @@ namespace Assets.Scripts.Core
     public sealed class GuiGameDriver : MonoBehaviour
     {
         [Header("Gui — Scene References")]
-        public Image fadeOverlay;
-        public TextMeshProUGUI toastText;
-        public GameObject dialoguePanel;
-        public TextMeshProUGUI npcNameText;
-        public TextMeshProUGUI lineText;
-        public GameObject cardSelectionPanel;
-        public Transform cardListContainer;
-        public GameObject cardButtonPrefab;
+        public Image FadeOverlay;
+        public TextMeshProUGUI ToastText;
+        public GameObject DialoguePanel;
+        public TextMeshProUGUI NpcNameText;
+        public TextMeshProUGUI LineText;
+        public GameObject CardSelectionPanel;
+        public Transform CardListContainer;
+        public GameObject CardButtonPrefab;
 
         private IGui _gui;
         private IDialogue _dialogue;
@@ -33,9 +34,10 @@ namespace Assets.Scripts.Core
             _gui = gui;
             _dialogue = dialogue;
 
-            // Pass scene references to Gui service
-            _gui.Init(fadeOverlay, toastText, dialoguePanel, npcNameText, lineText,
-                      cardSelectionPanel, cardListContainer, cardButtonPrefab);
+            // Bundle scene references into GuiContext and pass to Gui service
+            var config = new GuiContext(FadeOverlay, ToastText, DialoguePanel, NpcNameText, LineText,
+                                       CardSelectionPanel, CardListContainer, CardButtonPrefab);
+            _gui.Init(config);
 
             // Subscribe dialogue events → Gui handlers
             _dialogue.OnDialogueStarted += _gui.HandleDialogueStarted;

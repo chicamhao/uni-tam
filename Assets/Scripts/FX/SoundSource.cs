@@ -7,32 +7,32 @@ namespace Assets.Scripts.FX
     /// </summary>
     public sealed class SoundSource : MonoBehaviour
     {
-        public AudioClip clip;
-        [Range(0f, 1f)] public float volume = 1f;
-        public float range = 10f;
-        public bool loop = false;
-        public bool playOnStart = true;
+        public AudioClip Clip;
+        [Range(0f, 1f)] public float Volume = 1f;
+        public float Range = 10f;
+        public bool Loop = false;
+        public bool PlayOnStart = true;
 
         private AudioSource _audioSource;
 
         private void Start()
         {
             _audioSource = gameObject.AddComponent<AudioSource>();
-            _audioSource.clip = clip;
-            _audioSource.volume = volume;
-            _audioSource.maxDistance = range;
+            _audioSource.clip = Clip;
+            _audioSource.volume = Volume;
+            _audioSource.maxDistance = Range;
             _audioSource.spatialBlend = 1f;
-            _audioSource.loop = loop;
+            _audioSource.loop = Loop;
             _audioSource.playOnAwake = false;
 
-            if (playOnStart && clip != null)
+            if (PlayOnStart && Clip != null)
                 _audioSource.Play();
         }
 
         [ContextMenu("Play")]
         public void Play()
         {
-            if (_audioSource != null && clip != null)
+            if (_audioSource != null && Clip != null)
                 _audioSource.Play();
         }
 

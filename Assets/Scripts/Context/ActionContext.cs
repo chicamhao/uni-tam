@@ -1,11 +1,12 @@
+using UnityEngine;
 using Assets.Scripts.Interaction.Input;
 using Assets.Scripts.Interaction.Interfaces;
 using Assets.Scripts.Settings;
 using Assets.Scripts.Utility;
-using UnityEngine;
 
-namespace Assets.Scripts.Interaction.Actions
+namespace Assets.Scripts.Context
 {
+    /// <summary>Encapsulates per-frame player state, ground validation, and action dependencies.</summary>
     public sealed class ActionContext
     {
         private static readonly float _groundDistance = 1f;

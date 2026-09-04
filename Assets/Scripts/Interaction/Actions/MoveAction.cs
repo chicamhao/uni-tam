@@ -1,9 +1,11 @@
 using UnityEngine;
-using Assets.Scripts.Utility;
 using Assets.Scripts.Settings;
+using Assets.Scripts.Utility;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.Interaction.Actions
 {
+    /// <summary>Handles player ground and air movement, camera rotation, and sprint speed modification.</summary>
     public sealed class MoveAction
     {
         private readonly MoveSettings _moveSettings;

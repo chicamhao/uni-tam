@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace Utility
 {
+    /// <summary>Counts elapsed time against a duration and fires completion on update; implements IDisposable.</summary>
     public sealed class Timer : IDisposable
     {
         private float _elapsedTime;

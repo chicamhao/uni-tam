@@ -1,5 +1,5 @@
-using Assets.Scripts.Interaction.Interfaces;
 using UnityEngine;
+using Assets.Scripts.Interaction.Interfaces;
 
 namespace Assets.Scripts.Interaction.Puzzle
 {
@@ -8,7 +8,7 @@ namespace Assets.Scripts.Interaction.Puzzle
     /// </summary>
     public sealed class PuzzleObject : MonoBehaviour, IClickable
     {
-        public Renderer highlightRenderer;
+        public Renderer HighlightRenderer;
         public Color highlightColor = Color.yellow;
         public float highlightIntensity = 1f;
 
@@ -17,8 +17,8 @@ namespace Assets.Scripts.Interaction.Puzzle
         private void Awake()
         {
             _mpb = new MaterialPropertyBlock();
-            if (highlightRenderer != null)
-                highlightRenderer.GetPropertyBlock(_mpb);
+            if (HighlightRenderer != null)
+                HighlightRenderer.GetPropertyBlock(_mpb);
         }
 
         public void OnClick()
@@ -28,12 +28,12 @@ namespace Assets.Scripts.Interaction.Puzzle
 
         public void SetSelected(bool selected)
         {
-            if (highlightRenderer == null) return;
+            if (HighlightRenderer == null) return;
 
-            highlightRenderer.GetPropertyBlock(_mpb);
+            HighlightRenderer.GetPropertyBlock(_mpb);
             _mpb.SetFloat("_Intensity", selected ? highlightIntensity : 0f);
             _mpb.SetColor("_BaseColor", selected ? highlightColor : Color.white);
-            highlightRenderer.SetPropertyBlock(_mpb);
+            HighlightRenderer.SetPropertyBlock(_mpb);
         }
     }
 }

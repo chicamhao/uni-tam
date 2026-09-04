@@ -3,6 +3,7 @@ using Assets.Scripts.Settings;
 
 namespace Assets.Scripts.Interfaces
 {
+    /// <summary>Defines chapter progression — initialization, positionable registration, and chapter application.</summary>
     public interface IProgression
     {
         void Init(ProgressionSettings settings);

@@ -1,11 +1,12 @@
-using Assets.Scripts.Interaction.Actions;
-using Assets.Scripts.Interaction.Puzzle;
+using UnityEngine;
+using UnityEngine.Assertions;
 using Assets.Scripts.Characters;
+using Assets.Scripts.Interaction.Actions;
+using Assets.Scripts.Interaction.Input;
+using Assets.Scripts.Interaction.Puzzle;
 using Assets.Scripts.Progressions;
 using Assets.Scripts.Settings;
 using Assets.Scripts.UI;
-using UnityEngine;
-using UnityEngine.Assertions;
 
 namespace Assets.Scripts.Core
 {
@@ -25,18 +26,19 @@ namespace Assets.Scripts.Core
         [SerializeField] GuiGameDriver _guiDriver;
 
         [Header("Camera")]
-        [SerializeField] Camera playerCamera;
-        [SerializeField] Camera puzzleCamera;
+        [SerializeField] Camera _playerCamera;
+        [SerializeField] Camera _puzzleCamera;
 
         // ── Service instances (private, no static access) ─────────────────────
         private Gui _gui;
         private Dialogue _dialogue;
         private PlayerState _playerState;
-        private GameplayScene _gameplayScene;
+        private Director _director;
         private Progression _progression;
         private Puzzle _puzzle;
 
-        private readonly ActionControl _actionControl;
+        private ActionControl _actionControl;
+        private InputHandle _inputHandle;
 
         private void Awake()
         {
@@ -52,7 +54,7 @@ namespace Assets.Scripts.Core
             _puzzle = new Puzzle();
             _playerState = new PlayerState(_gui);            // depends on IGui
             _dialogue = new Dialogue(_playerState);          // depends on IPlayerState
-            _gameplayScene = new GameplayScene();            // deps set via Init below
+            _director = new Director();            // deps set via Init below
 
             // Wire scene refs to Gui via GuiGameDriver
             _guiDriver.WireUp(_gui, _dialogue);
@@ -60,35 +62,57 @@ namespace Assets.Scripts.Core
             // Init leaf services (no service deps) 
             _progression.Init(_progressSettings);
             _progression.DiscoverPositionables();
-            _puzzle.Init(puzzleCamera);
+            _puzzle.Init(_puzzleCamera);
 
             // Init dependent services with explicit deps 
             _playerState.Init(_progressSettings.ReturnCard, _progressSettings.DefaultCards);
             _dialogue.Init(_dialogSettings);
-            _gameplayScene.Init(playerCamera, _dialogue, _progression);
+            _director.Init(_playerCamera, _dialogue, _progression);
+
+            // Find scene services once and inject ──────────────────────
+            _actionControl = FindAnyObjectByType<ActionControl>();
+            Assert.IsNotNull(_actionControl, "ActionControl must exist in the scene.");
+            _inputHandle = FindAnyObjectByType<InputHandle>();
 
             // Wire up player actions ────────────────────────────────────
-            _actionControl.Initialize(_actionSettings, _dialogue);
+            _actionControl?.Initialize(_actionSettings, _dialogue);
+
+            // InputHandle must exist on ActionControl's GameObject (guaranteed by [RequireComponent])
+            Assert.IsNotNull(_inputHandle, "InputHandle not found after ActionControl.Initialize.");
 
             // Inject service refs into scene MonoBehaviours ─────────────
-            var npcs = FindObjectsByType<NPC>();
-            foreach (var npc in npcs)
-                npc.DialogueRef = _dialogue;
+            var actors = FindObjectsByType<Actor>();
+            foreach (var actor in actors)
+            {
+                var interaction = actor.GetComponent<Characters.Interaction>();
+                if (interaction != null) interaction.DialogueRef = _dialogue;
+            }
 
             var triggers = FindObjectsByType<PuzzleTrigger>();
             foreach (var t in triggers)
+            {
                 t.PuzzleRef = _puzzle;
+                t.InputHandleRef = _inputHandle;
+            }
 
             var beds = FindObjectsByType<Bed>();
             foreach (var b in beds)
             {
-                b.GameplaySceneRef = _gameplayScene;
+                b.DirectorRef = _director;
                 b.GuiRef = _gui;
+                b.InputHandleRef = _inputHandle;
             }
 
-            // ── 7. Subscribe dialogue events → gameplay scene handlers ──────
-            _dialogue.OnDialogueStarted += _gameplayScene.HandleDialogueStarted;
-            _dialogue.OnDialogueEnded += _gameplayScene.HandleDialogueEnded;
+            var crosshairs = FindObjectsByType<CrosshairInteractor>();
+            foreach (var c in crosshairs)
+                c.ActionControlRef = _actionControl;
+
+            // Inject into Director ─────────────────────────────────
+            _director.InputHandleRef = _inputHandle;
+
+            // ── Subscribe dialogue events → gameplay scene handlers ────
+            _dialogue.OnDialogueStarted += _director.HandleDialogueStarted;
+            _dialogue.OnDialogueEnded += _director.HandleDialogueEnded;
         }
 
         private void Start()
@@ -110,13 +134,13 @@ namespace Assets.Scripts.Core
         private void OnDestroy()
         {
             // Unsubscribe event handlers to prevent leaks
-            _dialogue.OnDialogueStarted -= _gameplayScene.HandleDialogueStarted;
-            _dialogue.OnDialogueEnded -= _gameplayScene.HandleDialogueEnded;
+            _dialogue.OnDialogueStarted -= _director.HandleDialogueStarted;
+            _dialogue.OnDialogueEnded -= _director.HandleDialogueEnded;
         }
 
         private void Update()
         {
-            _gameplayScene.Tick();
+            _director.Tick();
             _puzzle.Tick();
         }
     }

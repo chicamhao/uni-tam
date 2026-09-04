@@ -1,21 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Assets.Scripts.Interfaces;
-using Assets.Scripts.Characters;
-using Assets.Scripts.Settings;
-using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.Characters;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Settings;
+using Assets.Scripts.Context;
 
 namespace Assets.Scripts.UI
 {
-    /// <summary>
-    /// Manages HUD, toasts, fade overlay, card selection UI, and dialogue UI.
-    /// Plain C# service — created by GameDriver, scene references passed via Init().
-    /// Tick() is driven by GameDriver.Update().
-    /// Dependencies are explicit (none currently); no static access.
-    /// </summary>
     public sealed class Gui : IGui
     {
         public float FadeDefaultDuration { get; private set; } = 1.5f;
@@ -30,6 +24,8 @@ namespace Assets.Scripts.UI
         private Transform _cardListContainer;
         private GameObject _cardButtonPrefab;
 
+        private readonly List<GameObject> _cachedCardButtons = new();
+
         private enum FadeState { None, FadingToBlack, FadingFromBlack }
         private FadeState _fadeState;
         private float _fadeElapsed;
@@ -39,30 +35,17 @@ namespace Assets.Scripts.UI
         private ToastState _toastState;
         private float _toastElapsed;
 
-        /// <summary>
-        /// Called by GameDriver.Awake() after scene load to supply all scene references.
-        /// </summary>
-        public void Init(
-            Image fadeOverlay,
-            TextMeshProUGUI toastText,
-            GameObject dialoguePanel,
-            TextMeshProUGUI npcNameText,
-            TextMeshProUGUI lineText,
-            GameObject cardSelectionPanel,
-            Transform cardListContainer,
-            GameObject cardButtonPrefab)
+        public void Init(GuiContext config)
         {
-            _fadeOverlay = fadeOverlay;
-            _toastText = toastText;
-            _dialoguePanel = dialoguePanel;
-            _npcNameText = npcNameText;
-            _lineText = lineText;
-            _cardSelectionPanel = cardSelectionPanel;
-            _cardListContainer = cardListContainer;
-            _cardButtonPrefab = cardButtonPrefab;
+            _fadeOverlay = config.FadeOverlay;
+            _toastText = config.ToastText;
+            _dialoguePanel = config.DialoguePanel;
+            _npcNameText = config.NpcNameText;
+            _lineText = config.LineText;
+            _cardSelectionPanel = config.CardSelectionPanel;
+            _cardListContainer = config.CardListContainer;
+            _cardButtonPrefab = config.CardButtonPrefab;
         }
-
-        // ── Tick (driven by GameDriver.Update) ────────────────────────────────
 
         public void Tick(float dt)
         {
@@ -124,10 +107,10 @@ namespace Assets.Scripts.UI
 
         // ── Dialogue UI ───────────────────────────────────────────────────────
 
-        public void HandleDialogueStarted(DialogueEntry entry, NPC _)
+        public void HandleDialogueStarted(DialogueEntry entry, Actor _)
         {
             if (_dialoguePanel != null) _dialoguePanel.SetActive(true);
-            if (_npcNameText != null) _npcNameText.text = entry.NPCDisplayName;
+            if (_npcNameText != null) _npcNameText.text = entry.ActorDisplayName;
         }
 
         public void HandleDialogueEnded()
@@ -182,20 +165,37 @@ namespace Assets.Scripts.UI
             if (_cardSelectionPanel == null) return;
             _cardSelectionPanel.SetActive(true);
 
-            foreach (Transform child in _cardListContainer)
-                UnityEngine.Object.Destroy(child.gameObject);
+            int cardCount = availableCards.Count;
 
-            foreach (var card in availableCards)
+            // Deactivate all cached buttons, then reactivate/instantiate as needed
+            for (int i = 0; i < _cachedCardButtons.Count; i++)
+                _cachedCardButtons[i].SetActive(false);
+
+            // Ensure we have enough buttons
+            for (int i = _cachedCardButtons.Count; i < cardCount; i++)
             {
                 GameObject btnObj = UnityEngine.Object.Instantiate(_cardButtonPrefab, _cardListContainer);
+                _cachedCardButtons.Add(btnObj);
+            }
+
+            // Setup each button with its card data
+            for (int i = 0; i < cardCount; i++)
+            {
+                GameObject btnObj = _cachedCardButtons[i];
+                btnObj.SetActive(true);
                 var btn = btnObj.GetComponent<Card>();
+                int capturedIndex = i;
                 if (btn != null)
-                    btn.Setup(card, () =>
+                    btn.Setup(availableCards[i], () =>
                     {
                         _cardSelectionPanel.SetActive(false);
-                        onCardSelected?.Invoke(card);
+                        onCardSelected?.Invoke(availableCards[capturedIndex]);
                     });
             }
+
+            // Deactivate any extra cached buttons
+            for (int i = cardCount; i < _cachedCardButtons.Count; i++)
+                _cachedCardButtons[i].SetActive(false);
         }
 
         public void HideCardSelection()

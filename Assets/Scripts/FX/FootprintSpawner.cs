@@ -11,23 +11,23 @@ namespace Assets.Scripts.FX
     public sealed class FootprintSpawner : MonoBehaviour
     {
         [Header("Path")]
-        public List<Vector3> waypoints = new List<Vector3>();
+        public List<Vector3> Waypoints = new List<Vector3>();
 
         [Header("Footprint Settings")]
-        public Material footprintMaterial;
-        public float stepSpacing = 0.3f;
-        public float stepWidth = 0.2f;
-        public float revealDelay = 0.15f;
-        public float footprintSize = 0.25f;
+        public Material FootprintMaterial;
+        public float StepSpacing = 0.3f;
+        public float StepWidth = 0.2f;
+        public float RevealDelay = 0.15f;
+        public float FootprintSize = 0.25f;
 
         [Header("Runtime")]
-        public bool spawnOnStart = true;
+        public bool SpawnOnStart = true;
 
         public System.Action OnFootprintsComplete;
 
         private void Start()
         {
-            if (spawnOnStart)
+            if (SpawnOnStart)
                 StartCoroutine(SpawnFootprints());
         }
 
@@ -39,11 +39,11 @@ namespace Assets.Scripts.FX
 
         private IEnumerator SpawnFootprints()
         {
-            if (waypoints.Count < 2) yield break;
+            if (Waypoints.Count < 2) yield break;
 
             float totalLength = 0f;
-            for (int i = 0; i < waypoints.Count - 1; i++)
-                totalLength += Vector3.Distance(waypoints[i], waypoints[i + 1]);
+            for (int i = 0; i < Waypoints.Count - 1; i++)
+                totalLength += Vector3.Distance(Waypoints[i], Waypoints[i + 1]);
 
             float distance = 0f;
             bool leftFoot = false;
@@ -54,15 +54,15 @@ namespace Assets.Scripts.FX
                 Vector3 tangent = GetTangentOnPath(distance);
 
                 Vector3 right = Vector3.Cross(tangent, Vector3.up).normalized;
-                Vector3 footPos = position + (leftFoot ? -right : right) * stepWidth;
+                Vector3 footPos = position + (leftFoot ? -right : right) * StepWidth;
                 footPos.y = GetGroundHeight(footPos);
 
                 SpawnFootprintDecal(footPos, tangent);
 
                 leftFoot = !leftFoot;
-                distance += stepSpacing;
+                distance += StepSpacing;
 
-                yield return new WaitForSeconds(revealDelay);
+                yield return new WaitForSeconds(RevealDelay);
             }
 
             OnFootprintsComplete?.Invoke();
@@ -76,8 +76,8 @@ namespace Assets.Scripts.FX
             decalObj.transform.Rotate(Vector3.up, Random.Range(-5f, 5f));
 
             var decal = decalObj.AddComponent<DecalProjector>();
-            decal.material = footprintMaterial;
-            decal.size = new Vector3(footprintSize, footprintSize, 0.01f);
+            decal.material = FootprintMaterial;
+            decal.size = new Vector3(FootprintSize, FootprintSize, 0.01f);
             decal.pivot = new Vector3(0, 0, 0);
             decal.startAngleFade = 0f;
             decal.endAngleFade = 0f;
@@ -88,27 +88,27 @@ namespace Assets.Scripts.FX
         private Vector3 GetPositionOnPath(float distance)
         {
             float accumulated = 0f;
-            for (int i = 0; i < waypoints.Count - 1; i++)
+            for (int i = 0; i < Waypoints.Count - 1; i++)
             {
-                float segLen = Vector3.Distance(waypoints[i], waypoints[i + 1]);
+                float segLen = Vector3.Distance(Waypoints[i], Waypoints[i + 1]);
                 if (accumulated + segLen >= distance)
                 {
                     float t = (distance - accumulated) / segLen;
-                    return Vector3.Lerp(waypoints[i], waypoints[i + 1], t);
+                    return Vector3.Lerp(Waypoints[i], Waypoints[i + 1], t);
                 }
                 accumulated += segLen;
             }
-            return waypoints[waypoints.Count - 1];
+            return Waypoints[Waypoints.Count - 1];
         }
 
         private Vector3 GetTangentOnPath(float distance)
         {
             float accumulated = 0f;
-            for (int i = 0; i < waypoints.Count - 1; i++)
+            for (int i = 0; i < Waypoints.Count - 1; i++)
             {
-                float segLen = Vector3.Distance(waypoints[i], waypoints[i + 1]);
-                if (accumulated + segLen >= distance || i == waypoints.Count - 2)
-                    return (waypoints[i + 1] - waypoints[i]).normalized;
+                float segLen = Vector3.Distance(Waypoints[i], Waypoints[i + 1]);
+                if (accumulated + segLen >= distance || i == Waypoints.Count - 2)
+                    return (Waypoints[i + 1] - Waypoints[i]).normalized;
                 accumulated += segLen;
             }
             return Vector3.forward;
@@ -123,15 +123,15 @@ namespace Assets.Scripts.FX
 
         private void OnDrawGizmos()
         {
-            if (waypoints.Count < 2) return;
+            if (Waypoints.Count < 2) return;
 
             Gizmos.color = Color.cyan;
-            for (int i = 0; i < waypoints.Count - 1; i++)
+            for (int i = 0; i < Waypoints.Count - 1; i++)
             {
-                Gizmos.DrawLine(waypoints[i], waypoints[i + 1]);
-                Gizmos.DrawSphere(waypoints[i], 0.1f);
+                Gizmos.DrawLine(Waypoints[i], Waypoints[i + 1]);
+                Gizmos.DrawSphere(Waypoints[i], 0.1f);
             }
-            Gizmos.DrawSphere(waypoints[waypoints.Count - 1], 0.1f);
+            Gizmos.DrawSphere(Waypoints[Waypoints.Count - 1], 0.1f);
         }
     }
 }

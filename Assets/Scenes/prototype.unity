@@ -422,26 +422,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a78a8ed10bd1104a9ba9b5d5f5bce38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameDriver
-  spawnPoints:
-  - {fileID: 1433074198}
-  - {fileID: 691182049}
-  - {fileID: 110267905}
-  - {fileID: 848592589}
-  chapterSettings: {fileID: 0}
-  cardReturn: {fileID: 11400000, guid: a2256e540323c27499a4c4800ec85961, type: 2}
-  defaultNPCCards: []
-  fadeOverlay: {fileID: 792786937}
-  toastText: {fileID: 1975277636}
-  dialoguePanel: {fileID: 991302395}
-  npcNameText: {fileID: 1695411608}
-  lineText: {fileID: 198852503}
-  cardSelectionPanel: {fileID: 330021362}
-  cardListContainer: {fileID: 1836476027}
-  cardButtonPrefab: {fileID: 560593426}
-  playerCamera: {fileID: 1790518423}
-  puzzleCamera: {fileID: 0}
-  playerActionControl: {fileID: 1150917739}
-  actionSettingsAsset: {fileID: 11400000, guid: 0a1903fb83420ab4aa2a121fd1d30806, type: 2}
 --- !u!4 &295634209
 Transform:
   m_ObjectHideFlags: 0
@@ -452,53 +432,6 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &296221814
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 296221816}
-  - component: {fileID: 296221815}
-  m_Layer: 0
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &296221815
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 296221814}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventSystem
-  m_FirstSelected: {fileID: 0}
-  m_sendNavigationEvents: 1
-  m_DragThreshold: 10
---- !u!4 &296221816
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 296221814}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.03874, y: -0, z: -4.61213}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -689,10 +622,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e71ca60a279d07941b368a2e16bf4d9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Core.CardSelectionButton
-  _nameText: {fileID: 0}
-  _descText: {fileID: 0}
-  _iconImage: {fileID: 0}
-  _button: {fileID: 0}
 --- !u!114 &560593429
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -827,8 +756,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66296078e8b7f28489bfd5c801510817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Scripts.Chapters.Bed
-  sleepDuration: 8
-  highlightRenderer: {fileID: 961061519}
 --- !u!65 &623627991
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1155,11 +1082,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b114ba076fa9ef4da32c9e832f5d032, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCs.NPC
-  NPCID: npc_guard
-  DisplayName: Gate Guard
-  conversationCamera: {fileID: 1565411371}
-  expressionSet: {fileID: 11400000, guid: 30dc17c40baf14741bf009acc5bda003, type: 2}
-  skinnedMeshRenderer: {fileID: 881857628}
 --- !u!137 &881857628
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
@@ -1465,12 +1387,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df03d6ea055d4fc41a807436ddd4dc83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CrosshairInteractor
-  CrosshairTexture: {fileID: 0}
-  CrosshairSize: {x: 32, y: 32}
-  _distance: 3
-  _interactableLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294967295
 --- !u!114 &1150917742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1483,11 +1399,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8e7f6100c1baec4b83fb51a42c51fc7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Input.InputHandle
-  LookSensitivity: 1.2
-  TriggerAxisThreshold: 0.74
-  InvertYAxis: 0
-  InvertXAxis: 0
-  InputEnabled: 1
 --- !u!143 &1150917743
 CharacterController:
   m_ObjectHideFlags: 0
@@ -2632,5 +2543,4 @@ SceneRoots:
   - {fileID: 146933107}
   - {fileID: 1376641820}
   - {fileID: 1281186845}
-  - {fileID: 296221816}
   - {fileID: 471275880}

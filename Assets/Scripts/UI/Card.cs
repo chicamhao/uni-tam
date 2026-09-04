@@ -1,7 +1,7 @@
-using Settings;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Assets.Scripts.Settings;
 
 namespace Assets.Scripts.UI
 {
