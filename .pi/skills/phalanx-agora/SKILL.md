@@ -1,6 +1,6 @@
 ---
 name: phalanx-agora
-description: Use the phalanx agora for shared memory and messaging — the single source of state. Use whenever coordinating work across multiple dispatches so nothing is lost between them.
+description: Use the phalanx agora for shared memory and messaging — the single source of state. Use whenever coordinating work across multiple dispatches so nothing is lost between them, and to scope what a subagent sees via phalanx_dispatch's contextKeys.
 ---
 
 # Agora (shared memory + message bus)
@@ -26,6 +26,18 @@ state; every read and write goes through the `agora` tool.
 ## Retry tracking (shield_wall)
 
 - `agora { action: "attempts", scope: "dispatch:lochagos-build" }`
+
+## Context scoping on dispatch
+
+`phalanx_dispatch` never broadcasts the whole agora snapshot into a subagent —
+that wastes context and tokens on a cheap model. By default a dispatched role
+sees only the available key *names* (plus its inbox), not their values. Pass
+`contextKeys: ["objective", "..."]` on `phalanx_dispatch` to inline the full
+value of those specific keys into that subagent's task.
+
+- Know which keys the task needs? Pass them as `contextKeys`.
+- Not sure? Omit it — the subagent sees the key names and can be told which
+  ones to pull, or you inline the value directly in the task text.
 
 ## Rules
 

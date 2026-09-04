@@ -39,82 +39,75 @@ A chapter-driven, first-person narrative adventure game built with Unity (URP). 
 ## Project Structure
 
 ```
-Assets/
-├── Resources/
-│   └── Dialogues/           # DialogueEntry ScriptableObjects (auto-registered at startup)
-├── Scenes/
-│   └── SampleScene.unity    # Main game scene
-├── Scripts/
-│   ├── Actions/             # First-person action system (Move, Jump, Crouch, Interact, Skip)
-│   ├── Chapters/            # Chapter-specific objects (Bed, FootprintSpawner, HumanShadow, ShadowTrigger, SoundSource)
-│   ├── Core/                # Core game systems
-│   │   ├── Bootstrapper.cs        # DI registration before scene load
-│   │   ├── CardSelectionButton.cs # UI button for card selection
-│   │   ├── Dialogue.cs            # Dialogue engine (lines, timers, events)
-│   │   ├── GameDriver.cs          # MonoBehaviour bridge (Awake → Init, Update → Tick)
-│   │   ├── GameScene.cs           # Scene manager (camera swap, chapter advance)
-│   │   ├── PlayerState.cs         # Owned card inventory
-│   │   ├── ProgressionManager.cs  # Chapter state management for IPositionable objects
-│   │   └── UIManager.cs           # HUD, toasts, fades, dialogue UI, card selection UI
-│   ├── Input/               # Input handling
-│   │   ├── CrosshairInteractor.cs # Crosshair raycast for interactable detection
-│   │   └── InputHandle.cs        # Input action bindings (new Input System)
-│   ├── Interfaces/          # Shared interfaces
-│   │   ├── IClickable.cs
-│   │   ├── IInteractable.cs
-│   │   └── IPositionable.cs
-│   ├── NPC/                 # NPC behaviour
-│   │   └── NPC.cs           # Identity, expressions, chapter positioning, interaction
-│   ├── Puzzle/              # Swap puzzle system
-│   │   ├── Puzzle.cs              # Puzzle state machine (selection, swapping, camera)
-│   │   ├── PuzzleObject.cs        # Clickable puzzle piece
-│   │   └── PuzzleTrigger.cs       # Trigger volume to enter/exit puzzle mode
-│   ├── Settings/            # ScriptableObject data definitions
-│   │   ├── ActionSettings.cs
-│   │   ├── CardData.cs
-│   │   ├── ChapterSettings.cs
-│   │   ├── DialogueEntry.cs
-│   │   └── FacialExpressionSet.cs
-│   └── Utility/             # Shared utilities
-│       ├── Calculator.cs
-│       ├── DIContainer.cs         # Generic DI container for plain C# singletons
-│       └── Timer.cs               # Reusable timer
-├── Settings/                # URP & game settings assets
-└── TutorialInfo/
+Assets/Scripts/
+├── Actions/            # First-person actions (Move, Jump, Crouch, Interact, Skip)
+├── Chapters/           # Chapter-driven repositioning (Bed)
+├── Core/               # Plain C# singletons wired by GameDriver
+│   ├── GameDriver.cs           # Composite root — creates all services (Awake) & drives ticks (Update)
+│   ├── GameplayScene.cs        # Scene manager (camera swap, chapter progression, events)
+│   ├── GuiGameDriver.cs        # MonoBehaviour glue for UI panel references
+│   └── ...
+├── FX/                 # Visual effects (Footprints, Shadows, SoundSource)
+├── Input/              # Input handling (InputHandle, CrosshairInteractor)
+├── Interaction/        # Card-based interactions
+│   ├── Actions/        # Action classes for player input
+│   ├── Input/          # Input controllers
+│   ├── Interfaces/     # IClickable, IInteractable, IPositionable
+│   └── Puzzle/         # Swap puzzle system (Puzzle, PuzzleObject, PuzzleTrigger)
+├── Interfaces/         # Shared service interfaces (IDialogue, IGui, IPlayerState, etc.)
+├── NPC/                # NPC behavior, expressions, positioning
+├── Progressions/       # Core services (Dialogue, Gui, PlayerState, Progression)
+├── Settings/           # ScriptableObject configs (ActionSettings, DialogueSettings, etc.)
+├── UI/                 # UI system (Gui, Card)
+└── Utility/            # Helpers (Calculator, Timer)
 ```
 
 ---
 
 ## Architecture
 
-### Plain C# Singletons + DI Container
+### Composite Root Pattern: GameDriver
 
-All core systems (`Dialogue`, `Puzzle`, `UIManager`, `PlayerState`, `ProgressionManager`, `GameplayScene`) are plain C# classes — not MonoBehaviours. They are registered at startup by `Bootstrapper`:
+**GameDriver** is a **MonoBehaviour composite root** that:
+1. **Creates** all plain C# singletons (Dialogue, Gui, PlayerState, Progression, Puzzle, GameplayScene)
+2. **Injects** constructor dependencies (IPlayerState, etc.)
+3. **Wires** scene references via explicit `Init(...)` methods
+4. **Drives** ticks via `Update()` → calls `Tick()` on each service
 
+No static service locators, no singleton Instance properties. All services are field-private in GameDriver.
+
+### Plain C# Services
+
+Core systems are plain C# classes, **not MonoBehaviours**:
+- **Dialogue**: Card-triggered NPC conversations; line auto-advance via Timer
+- **Gui**: Fade overlay, toast notifications, dialogue panel, card selection UI
+- **PlayerState**: Card inventory & owned cards
+- **Progression**: Chapter database; repositions `IPositionable` actors per chapter
+- **Puzzle**: Swap-puzzle state machine; camera swap on enter/exit
+- **GameplayScene**: Scene manager; drives progression & manages camera/input modes
+
+### Communication: Events
+
+Services communicate via **C# events**, not tight coupling:
+```csharp
+Dialogue.OnDialogueStarted    → Gui shows panel, GameplayScene swaps camera
+Dialogue.OnLineChanged        → Gui updates NPC name & line text
+Puzzle.OnPuzzleEntered        → GameplayScene swaps camera & disables player input
 ```
-[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]
-Bootstrapper.Initialize()
-    └── DIContainer.Inject(new Dialogue())
-    └── DIContainer.Inject(new ProgressionManager())
-    └── DIContainer.Inject(new PlayerState())
-    └── DIContainer.Inject(new UIManager())
-    └── DIContainer.Inject(new GameplayScene())
-    └── DIContainer.Inject(new Puzzle())
-```
 
-Then `GameDriver` (a MonoBehaviour placed in each scene) calls `Init(...)` on each system with scene references (cameras, UI panels, spawn points), and drives their `Tick(...)` methods from `Update()`.
+### Interfaces
 
-### Chapter System
-
-`ProgressionManager` holds a database of `ChapterEntry` records keyed by `"{ActorID}_{ChapterNumber}"`. Each `IPositionable` (NPCs, player) can be relocated, hidden, or given a new animation per chapter. Calling `AdvanceChapter()` on `GameplayScene` triggers a repositioning of all registered actors.
-
-### Dialogue System
-
-Dialogue is triggered by using a **CardData** item on an **NPC**. The `Dialogue` system looks up a `DialogueEntry` by `{CardID}_{NPCID}`. Dialogue lines auto-advance on a timer and can be skipped. NPCs display facial expressions via blend-shape morphs during lines.
-
-### Puzzle System
-
-The swap puzzle activates when the player enters a trigger volume. The player camera is swapped for a puzzle camera, and the player can click puzzle objects to select and swap them. Exiting returns control to the player.
+| Interface | Purpose | Implemented By |
+|---|---|---|
+| `IDialogue` | Card-based dialogue engine | `Dialogue` |
+| `IGui` | UI system | `Gui` |
+| `IPlayerState` | Card inventory | `PlayerState` |
+| `IProgression` | Chapter progression | `Progression` |
+| `IPuzzle` | Swap puzzle logic | `Puzzle` |
+| `IGameplayScene` | Scene manager | `GameplayScene` |
+| `IInteractable` | Player crosshair targets (NPCs, beds) | `NPC`, `Bed` |
+| `IPositionable` | Per-chapter repositioning | `NPC`, `ActionControl` |
+| `IClickable` | Puzzle object click | `PuzzleObject` |
 
 ---
 
@@ -192,151 +185,88 @@ The swap puzzle activates when the player enters a trigger volume. The player ca
 
 | Element | Convention | Example |
 |---|---|---|
-| Classes, structs, enums, methods, properties, public fields | PascalCase | `GameDriver`, `Dialogue`, `ApplyExpression()` |
-| Private fields (including serialized) | `_camelCase` prefix — no exceptions (every private field, static/readonly/serialized included) | `_lineTimer`, `_context`, `_fadeState` |
-| Private readonly fields | `_camelCase` prefix | `_settings`, `_controller`, `_input` |
-| Static readonly fields | `_camelCase` prefix | `_groundDistance`, `_jumpGroundingPreventionTime` |
-| Local variables | camelCase | `elapsed`, `targetVelocity`, `worldSpaceMoveInput` |
-| Interfaces | `I` prefix | `IInteractable`, `IPositionable`, `IClickable` |
-| Boolean fields (public) | PascalCase, no prefixes | IsVisible, IsDialogueActive, IsActive |
-| Boolean fields (private) | `_camelCase` | `_isActive`, `_initialized`, `_hovering` |
-| Events | `On` prefix | `OnDialogueStarted`, `OnPuzzleExited`, `OnLineChanged` |
-| Inspector-exposed fields | PascalCase, `public` or `[SerializeField] private` | `NPCID`, `DisplayName`, `puzzleCamera` |
+| Classes, structs, enums | PascalCase | `GameDriver`, `Dialogue`, `DialogueEntry` |
+| Methods, properties, public fields | PascalCase | `Init()`, `ApplyExpression()`, `IsDialogueActive` |
+| Private fields (all types) | `_camelCase` — **no exceptions** | `_lineTimer`, `_fadeState`, `_settings` |
+| Local variables | camelCase | `elapsed`, `targetVelocity` |
+| Interfaces | `I` prefix | `IDialogue`, `IInteractable`, `IPositionable` |
+| Events | `On` prefix | `OnDialogueStarted`, `OnLineChanged`, `OnPuzzleExited` |
 
-### Namespaces
+### Class Structure
 
-| Folder | Namespace |
-|---|---|
-| Scripts/Actions | Actions |
-| Scripts/Chapters | Chapters |
-| Scripts/Core | Core (Bootstrapper, CardSelectionButton); GameScene.cs → Manager.Scene |
-| Scripts/Input | Input |
-| Scripts/Interfaces | Interfaces |
-| Scripts/NPC | NPCs (plural — NPC is the class name) |
-| Scripts/Puzzle | Puzzle (PuzzleObject, PuzzleTrigger); Puzzle.cs class itself un-namespaced |
-| Scripts/Settings | Settings |
-| Scripts/Utility | Utility |
+- **Sealed by default** — only unseal for inheritance
+- **One file per class** (exceptions: related data types like DialogueLine, MorphTargetValue)
+- **Using groups**: System.* → UnityEngine → local namespaces (alphabetical within each)
+- **XML doc comments** on all public types, methods, and properties
+- **Inline comments** for non-obvious logic
+- **Section headers** (`// ── State ────`) for organization in large files
 
-- Top-level domain singletons (`Dialogue`, `Puzzle`, `PlayerState`, `UIManager`, `GameplayScene`, `ProgressionManager`, `GameDriver`) are intentionally un-namespaced for cross-module access; `.editorconfig` suppresses IDE0130 for these.
+### Dependency Injection
 
-### File & Class Organization
-
-- **One class per file** (exceptions: closely related types like `DialogueEntry` + `DialogueLine` + `FacialExpression` + `MorphTargetValue`)
-- File name matches the primary class name
-- `using` statements grouped: `System.*` first, then Unity (`UnityEngine`, `TMPro`, etc.), then local project namespaces — alphabetically within each group
-- Classes are `sealed` unless designed for inheritance
-- Static utility classes are `static`
-
-### Plain C# Singleton Pattern
-
-Core systems are plain C# classes (not MonoBehaviours), registered via `DIContainer`:
-
+**Constructor injection** for dependencies:
 ```csharp
-public sealed class Dialogue
+public sealed class Dialogue : IDialogue
 {
-    public static Dialogue Instance => DIContainer.Get<Dialogue>();
-    // ...
+    private readonly IPlayerState _playerState;
+    
+    public Dialogue(IPlayerState playerState) => _playerState = playerState;
+    public void Init(DialogueSettings settings) { ... }  // Scene refs passed here
 }
 ```
 
-Registration happens in `Bootstrapper.Initialize()` (runs `BeforeSceneLoad`). Scene references are passed later via `Init(...)` methods called by `GameDriver.Awake()`. Update logic is driven via `Tick(...)` methods called by `GameDriver.Update()`.
+**GameDriver wires everything**:
+```csharp
+_dialogue = new Dialogue(_playerState);           // Constructor deps
+_dialogue.Init(_dialogSettings);                  // Scene refs & config
+_gameplayScene.Init(playerCamera, _dialogue);     // More scene refs
+```
 
-### MonoBehaviour Conventions
+### MonoBehaviour Best Practices
 
-- Use `[RequireComponent(...)]` for mandatory dependencies
-- Use `[Header("...")]` for inspector section grouping
-- Use `[Tooltip("...")]` for serialized field documentation
-- Use `[SerializeField] private` over `public` for serialized fields that don't need external writes
-- Prefer `FindAnyObjectByType<T>()` over slow singleton lookups in MonoBehaviours
-- Subscribe/unsubscribe events in `Start()` / `OnDestroy()` (or `OnEnable()` / `OnDisable()`)
-
-> ⚠️ **Serialized-field renames break inspector bindings.** Renaming a `[SerializeField]` field (e.g. `CardSelectionButton`'s `_nameText`, `_descText`, `_iconImage`, `_button`, `_cachedCard`) causes Unity to lose the serialized reference — the field shows up as `None` in the inspector. **Re-assign all renamed serialized references in the Unity inspector after this refactor** (private-field `_camelCase` convention has no exceptions).
-
-### Input & Actions
-
-- The **Action pattern** encapsulates each player action in its own class (`MoveAction`, `JumpAction`, `CrouchAction`, `InteractAction`, `SkipLineAction`)
-- All actions share an `ActionContext` that holds the `CharacterController`, `InputHandle`, and state flags
-- `InputHandle` wraps the new Unity Input System and exposes semantic getters (`GetMoveInput()`, `GetJumpInputDown()`, etc.)
-- Input is disabled via `InputHandle.DisableInput()` during dialogue, puzzle, and cutscenes
+- **Composite root only** — GameDriver is the **only** MonoBehaviour that creates services
+- Other MonoBehaviours receive service refs via `ref` fields (e.g., `DialogueRef`, `GuiRef`)
+- **No FindObjectOfType** for core systems — inject refs instead
+- Use `[SerializeField] private` for internal state; `public` only for direct assignment by GameDriver
 
 ### Event-Driven Communication
 
-Core systems communicate via C# events, not tight coupling:
+Services communicate via **C# events** and **ref field injection**:
 
 ```csharp
-public event Action<DialogueEntry, NPC> OnDialogueStarted;
-public event Action OnDialogueEnded;
-public event Action<DialogueLine> OnLineChanged;
+// GameDriver injects service refs into MonoBehaviours
+npc.DialogueRef = _dialogue;
+npc.GuiRef = _gui;
+
+// Services subscribe to events
+_dialogue.OnDialogueStarted += _gameplayScene.HandleDialogueStarted;
+_dialogue.OnDialogueEnded += _gameplayScene.HandleDialogueEnded;
 ```
 
-Subscribers wire up in `GameDriver.Start()` and unsubscribe in `GameDriver.OnDestroy()`.
+### Action Pattern
 
-### Interfaces
-
-| Interface | Purpose | Implemented By |
-|---|---|---|
-| `IInteractable` | Player crosshair interaction | `NPC`, `Bed`, `SoundSource` |
-| `IPositionable` | Per-chapter repositioning | `NPC`, `ActionControl` (player) |
-| `IClickable` | Puzzle object click | `PuzzleObject` |
-
-### Comments & Documentation
-
-- `/// <summary>` XML doc comments on **all public classes, methods, and properties**
-- `// ─── Section headers ────────────────────────────────────────────` for grouping within large files
-- Inline `//` comments for non-obvious logic
-- `#if UNITY_EDITOR` for editor-only code (debug helpers, `ContextMenu` methods)
-
-### ScriptableObject Settings
-
-- Settings data lives in `Assets/Scripts/Settings/` as `ScriptableObject` assets
-- Each settings class has a `[CreateAssetMenu(...)]` attribute for easy creation
-- Simple structs (`ChapterEntry`, `DialogueLine`, `MorphTargetValue`) use `[System.Serializable]`
-- Settings fields use `[Tooltip(...)]` for Unity inspector tooltips
-
-### Coroutines & Timing
-
-- Use `Timer` (from `Utility`) for non-MonoBehaviour timed operations (line auto-advance in `Dialogue`)
-- Use `StartCoroutine` in MonoBehaviours for sequenced animations (fades, spawning, blending)
-- Prefer `Mathf.Lerp` / `Mathf.SmoothStep` for smooth transitions
-
-### MaterialPropertyBlock
-
-Use `MaterialPropertyBlock` (not `material` property) for per-instance visual changes to avoid breaking instancing and creating material copies:
-
+Each player action is a separate class that shares an `ActionContext`:
 ```csharp
-private MaterialPropertyBlock mpb;
-private void Awake()
+public sealed class MoveAction
 {
-    mpb = new MaterialPropertyBlock();
-    renderer.GetPropertyBlock(mpb);
+    private readonly ActionContext _context;
+    private readonly MoveSettings _moveSettings;
+    
+    public MoveAction(ActionContext context, MoveSettings moveSettings) { ... }
+    public void Move() { ... }
 }
 ```
 
-### Error Handling
+### Timing
 
-- `DIContainer.Get<T>()` throws `InvalidOperationException` if the type is not registered (fail fast)
-- Use `DIContainer.TryGet<T>()` for optional dependencies
-- Null-check with `?.` and `??` operators; guard with `if (x == null) return`
-- `Debug.LogWarning` for recoverable issues (re-registration, missing references)
+- **Non-MonoBehaviour**: Use `Timer` (Utility) for line auto-advance in Dialogue
+- **MonoBehaviour**: Use `StartCoroutine` for sequenced effects (fades, spawning)
+- Prefer `Mathf.Lerp` for smooth transitions
 
-### Project Structure
+### ScriptableObject Settings
 
-```
-Assets/Scripts/
-├── Actions/          # First-person action classes (Move, Jump, Crouch, Interact, Skip)
-├── Chapters/         # Chapter-specific MonoBehaviours (Bed, FootprintSpawner, HumanShadow, etc.)
-├── Core/             # Plain C# singletons (Dialogue, Puzzle, UIManager, PlayerState, etc.)
-├── Input/            # Input handling (InputHandle, CrosshairInteractor)
-├── Interfaces/       # Shared interfaces (IInteractable, IPositionable, IClickable)
-├── NPC/              # NPC behaviour and expressions
-├── Puzzle/           # Swap puzzle system
-├── Settings/         # ScriptableObject data definitions
-└── Utility/          # Shared utilities (DIContainer, Timer, Calculator)
-```
-
-### EditorConfig
-
-- `.editorconfig` suppresses IDE0130 (namespace-folder mismatch) for `.cs` files — some top-level classes intentionally omit namespaces
+- Settings live in `Assets/Scripts/Settings/` with `[CreateAssetMenu(...)]` attributes
+- Data types (ChapterEntry, DialogueLine, MorphTargetValue) use `[System.Serializable]`
+- Include `[Tooltip(...)]` for inspector documentation
 
 ---
 

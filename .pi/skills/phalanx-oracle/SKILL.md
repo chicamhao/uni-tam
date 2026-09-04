@@ -12,14 +12,16 @@ The **oracle** is the user. It sits outside the chain of command. Only the strat
 
 - The objective is ambiguous and guessing would be costly.
 - A `shield_wall` escalation has reached you and there is nothing new to try.
-- A subagent has exhausted its retries and you have no better task to give it.
+- A subagent has exhausted its retries — and, if an escalation model is
+  configured, also failed on that model — and you have no better task to give it.
 
 ## How
 
-`phalanx_dispatch` consults the oracle automatically when a role's retries are
-exhausted (you can disable this with `askOracleOnExhaust: false`). Otherwise, stop
-and ask the user directly — present the ambiguity or the failed attempts and ask for
-a decision.
+`phalanx_dispatch` retries automatically: once at the narrowest scope, then once
+more on `models.escalation` if one is configured. Only after both are exhausted
+does it consult the oracle (you can disable this with `askOracleOnExhaust: false`).
+Otherwise, stop and ask the user directly — present the ambiguity or the failed
+attempts and ask for a decision.
 
 ## Rules
 

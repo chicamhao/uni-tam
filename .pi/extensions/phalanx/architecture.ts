@@ -224,14 +224,6 @@ export function parseYaml(text: string): unknown {
 // Typed model
 // ---------------------------------------------------------------------------
 
-export interface DirectReport {
-  id: string;
-  tool?: unknown;
-  trigger?: string;
-  responsibility?: string;
-  tracks?: string;
-}
-
 export interface PhalanxRole {
   id: string;
   tier?: string;
@@ -242,7 +234,6 @@ export interface PhalanxRole {
   interfaces?: string[];
   responsibility?: string;
   instances?: string[];
-  direct_reports?: DirectReport[];
   accessed_by?: string[];
   consulted_by?: string[];
   tool?: unknown;
@@ -258,13 +249,17 @@ export interface PhalanxRule {
   statement: string;
 }
 
+export interface PhalanxModels {
+  escalation?: string;
+}
+
 export interface PhalanxArchitecture {
   schemaVersion: unknown;
   roles: Record<string, PhalanxRole>;
   interfaces: Record<string, unknown>;
   deployment: Record<string, unknown>;
   rules: PhalanxRule[];
-  extend: Record<string, unknown>;
+  models: PhalanxModels;
   raw: Record<string, unknown>;
   filePath: string;
 }
@@ -280,18 +275,6 @@ function asStringArray(v: unknown): string[] {
 
 function mapRole(id: string, v: unknown): PhalanxRole {
   const r = asRecord(v);
-  const directReports: DirectReport[] = Array.isArray(r.direct_reports)
-    ? r.direct_reports.map((d) => {
-        const dr = asRecord(d);
-        return {
-          id: typeof dr.id === "string" ? dr.id : "",
-          tool: dr.tool,
-          trigger: typeof dr.trigger === "string" ? dr.trigger : undefined,
-          responsibility: typeof dr.responsibility === "string" ? dr.responsibility : undefined,
-          tracks: typeof dr.tracks === "string" ? dr.tracks : undefined,
-        };
-      })
-    : [];
   return {
     id,
     tier: typeof r.tier === "string" ? r.tier : undefined,
@@ -302,7 +285,6 @@ function mapRole(id: string, v: unknown): PhalanxRole {
     interfaces: asStringArray(r.interfaces),
     responsibility: typeof r.responsibility === "string" ? r.responsibility : undefined,
     instances: asStringArray(r.instances),
-    direct_reports: directReports,
     accessed_by: asStringArray(r.accessed_by),
     consulted_by: asStringArray(r.consulted_by),
     tool: r.tool,
@@ -337,35 +319,31 @@ roles:
   lochagos:
     tier: coordinator
     reports_to: strategos
-    dispatches: [hoplites]
-    instances: [research, build, verify]
-  hoplites:
-    tier: specialist
-    reports_to: lochagos
-    writes_to: [agora]
-    direct_reports: []
+    instances: [work, research, build, verify]
   agora:
     tier: infrastructure
   oracle:
     tier: escalation
 rules:
   - id: chain_of_command
-    statement: a hoplite escalates failure to its lochagos, never sideways
+    statement: a lochagos escalates failure to the strategos, never sideways
   - id: scout_first
-    statement: psiloi probe cheaply before a hoplite is dispatched
+    statement: probe with psiloi when the target location is unknown
   - id: shield_wall
     statement: retry at the narrowest scope once, then escalate
   - id: consult_the_oracle
     statement: if ambiguous or retries exhausted, ask the user
   - id: single_state
     statement: no private state; all reads and writes go through agora
+models:
+  escalation: ""
 extend:
-  add_lochos:
-    append_to: roles.lochagos.instances
-  add_hoplite:
-    append_to: roles.hoplites
   general_principle: every new role declares exactly one reports_to
 `;
+
+function nonBlankString(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
+}
 
 export function parseArchitecture(text: string, filePath: string): PhalanxArchitecture {
   const raw = asRecord(parseYaml(text));
@@ -383,13 +361,14 @@ export function parseArchitecture(text: string, filePath: string): PhalanxArchit
         };
       })
     : [];
+  const modelsRaw = asRecord(raw.models);
   return {
     schemaVersion: raw.schema_version,
     roles,
     interfaces: asRecord(raw.interfaces),
     deployment: asRecord(raw.deployment),
     rules,
-    extend: asRecord(raw.extend),
+    models: { escalation: nonBlankString(modelsRaw.escalation) },
     raw,
     filePath,
   };
@@ -408,27 +387,14 @@ export function loadArchitecture(cwd: string): PhalanxArchitecture {
 // Chain-of-command derivation
 // ---------------------------------------------------------------------------
 
-// Canonical agent names. The role id is plural for hoplites but agent names use
-// the singular stem (`hoplite-kerux`), matching the direct_reports entries.
-export function lochagosAgentName(instance: string): string {
-  return `lochagos-${instance}`;
-}
-export function hopliteAgentName(id: string): string {
-  return `hoplite-${id}`;
-}
 export function isLochagosAgent(name: string): boolean {
   return name === "lochagos" || name.startsWith("lochagos-");
-}
-export function isHopliteAgent(name: string): boolean {
-  return name === "hoplites" || name.startsWith("hoplite-");
 }
 
 /**
  * Which target roles a source role may dispatch, per the architecture.
- * strategos -> psiloi, lochagos (any domain), and hoplite direct reports
- *              (direct reports, which bypass lochagoi).
- * lochagos  -> hoplites (the `dispatches: [hoplites]` entry).
- * psiloi / hoplites dispatch nothing.
+ * strategos -> psiloi, lochagos (any domain).
+ * lochagos / psiloi dispatch nothing further — they work directly and escalate up.
  */
 export function mayDispatch(arch: PhalanxArchitecture, from: string, to: string): boolean {
   if (from === to) return false;
@@ -438,21 +404,10 @@ export function mayDispatch(arch: PhalanxArchitecture, from: string, to: string)
   if (!role) return false;
 
   if (fromResolved.role === "strategos") {
-    if (to === "psiloi") return true;
-    if (isLochagosAgent(to)) return true;
-    if (isHopliteAgent(to)) {
-      // only the direct reports bypass the lochagoi
-      const id = to === "hoplites" ? "" : to.slice("hoplite-".length);
-      return arch.roles.hoplites?.direct_reports?.some((d) => d.id === id) ?? false;
-    }
-    return false;
+    return to === "psiloi" || isLochagosAgent(to);
   }
 
-  if (isLochagosAgent(fromResolved.role)) {
-    return isHopliteAgent(to); // lochagos dispatches hoplites in its domain
-  }
-
-  return false; // psiloi and hoplites dispatch nothing
+  return false; // lochagos and psiloi dispatch nothing
 }
 
 /** Resolve a role name (possibly an instance) to `{ role, instance? }`. */
@@ -466,112 +421,6 @@ export function resolveRole(
     const inst = roleName === "lochagos" ? undefined : roleName.slice("lochagos-".length);
     if (!inst || arch.roles.lochagos?.instances?.includes(inst)) return { role: "lochagos", instance: inst };
   }
-  if (isHopliteAgent(roleName)) {
-    const id = roleName === "hoplites" ? undefined : roleName.slice("hoplite-".length);
-    if (!id || arch.roles.hoplites?.direct_reports?.some((d) => d.id === id)) return { role: "hoplites", instance: id };
-  }
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Extend helpers (mutate the YAML in place, preserving the rest of the file)
-// ---------------------------------------------------------------------------
-
-/** Append a new lochagos domain to `roles.lochagos.instances`. */
-export function appendLochagosInstance(arch: PhalanxArchitecture, name: string): { ok: boolean; detail: string } {
-  const nameSanitized = name.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "");
-  if (!nameSanitized) return { ok: false, detail: "invalid lochagos name" };
-  if (arch.roles.lochagos?.instances?.includes(nameSanitized)) {
-    return { ok: false, detail: `lochagos "${nameSanitized}" already exists` };
-  }
-
-  const text = fs.readFileSync(arch.filePath, "utf-8");
-  const lines = text.split("\n");
-
-  // find the `instances:` line that belongs to lochagos (indent 4)
-  let idx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^    instances:\s*$/.test(lines[i])) {
-      idx = i;
-      break;
-    }
-  }
-  if (idx === -1) return { ok: false, detail: "could not locate roles.lochagos.instances in the file" };
-
-  // find the last list item under instances (indent 6 `- `) before a dedent
-  let last = idx;
-  for (let i = idx + 1; i < lines.length; i++) {
-    if (/^      - /.test(lines[i])) {
-      last = i;
-    } else if (/^\S/.test(lines[i]) || /^    \S/.test(lines[i])) {
-      break;
-    }
-  }
-  lines.splice(last + 1, 0, `      - ${nameSanitized}`);
-  fs.writeFileSync(arch.filePath, lines.join("\n"), "utf-8");
-
-  // keep the in-memory model in sync
-  arch.roles.lochagos.instances = [...(arch.roles.lochagos.instances ?? []), nameSanitized];
-  (arch.raw.roles as Record<string, unknown>).lochagos = {
-    ...asRecord((arch.raw.roles as Record<string, unknown>).lochagos),
-    instances: arch.roles.lochagos.instances,
-  };
-  return { ok: true, detail: `added lochagos "${nameSanitized}" to roles.lochagos.instances` };
-}
-
-/** Append a new hoplite (tagged with an owning lochagos) to `roles.hoplites`. */
-export function appendHoplite(
-  arch: PhalanxArchitecture,
-  id: string,
-  lochagos: string,
-  tool: string,
-): { ok: boolean; detail: string } {
-  const idSanitized = id.replace(/[^\w-]+/g, "-").replace(/^-+|-+$/g, "");
-  if (!idSanitized) return { ok: false, detail: "invalid hoplite id" };
-  if (arch.roles.hoplites?.direct_reports?.some((d) => d.id === idSanitized)) {
-    return { ok: false, detail: `hoplite "${idSanitized}" already exists` };
-  }
-
-  const text = fs.readFileSync(arch.filePath, "utf-8");
-  const lines = text.split("\n");
-
-  // locate the `direct_reports:` line (indent 4)
-  let idx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^    direct_reports:/.test(lines[i])) {
-      idx = i;
-      break;
-    }
-  }
-  if (idx === -1) return { ok: false, detail: "could not locate roles.hoplites.direct_reports in the file" };
-
-  // find the last map item under direct_reports before the next dedent
-  let last = idx;
-  for (let i = idx + 1; i < lines.length; i++) {
-    if (/^      - id: /.test(lines[i])) {
-      last = i;
-      // also capture the trailing keys of that item
-      let j = i + 1;
-      while (j < lines.length && /^        \S/.test(lines[j])) {
-        last = j;
-        j++;
-      }
-    } else if (/^\S/.test(lines[i]) || /^    \S/.test(lines[i])) {
-      break;
-    }
-  }
-
-  const block = [
-    `      - id: ${idSanitized}`,
-    `        reports_to: ${lochagos}`,
-    `        tool: ${tool}`,
-  ];
-  lines.splice(last + 1, 0, ...block);
-  fs.writeFileSync(arch.filePath, lines.join("\n"), "utf-8");
-
-  arch.roles.hoplites.direct_reports = [
-    ...(arch.roles.hoplites.direct_reports ?? []),
-    { id: idSanitized, tool, trigger: "on_demand" },
-  ];
-  return { ok: true, detail: `added hoplite "${idSanitized}" (reports_to: ${lochagos}) to roles.hoplites` };
-}

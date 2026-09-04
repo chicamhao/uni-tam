@@ -1,19 +1,18 @@
 /**
  * phalanx extension — implements the phalanx multi-agent architecture for pi.
  *
- * Read order mirrors `phalanx-architecture.yaml`: roles -> rules -> extend.
+ * Read order mirrors `phalanx-architecture.yaml`: roles -> rules -> models -> extend.
  *
  * Registered surface:
  *   tools:
  *     agora            shared memory + message bus (single_state)
  *     phalanx_dispatch dispatch a role with chain-of-command enforcement,
- *                      shield_wall retry, and consult_the_oracle escalation
+ *                      shield_wall retry (with an optional escalation model),
+ *                      and consult_the_oracle escalation
  *     phalanx_status   inspect roles, rules, agents, and agora state
  *   commands:
- *     /phalanx                 summary
- *     /phalanx add-lochos      extend: add a coordinator domain
- *     /phalanx add-hoplite     extend: add a specialist (one tool)
- *     /phalanx reset           clear agora
+ *     /phalanx          summary: roles, agora state, token cost, elapsed time
+ *     /phalanx-new      clear agora runtime state
  */
 
 import * as fs from "node:fs";
@@ -23,9 +22,6 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { Type } from "typebox";
 
 import {
-  appendHoplite,
-  appendLochagosInstance,
-  isHopliteAgent,
   isLochagosAgent,
   loadArchitecture,
   mayDispatch,
@@ -62,26 +58,47 @@ function truncate(s: string, max = 2000): string {
 function listValidRoles(arch: PhalanxArchitecture): string {
   const parts = ["psiloi"];
   for (const inst of arch.roles.lochagos?.instances ?? []) parts.push(`lochagos-${inst}`);
-  for (const d of arch.roles.hoplites?.direct_reports ?? []) parts.push(`hoplite-${d.id}`);
   return parts.join(", ");
 }
 
 function chainOfCommandError(arch: PhalanxArchitecture, agentName: string): string {
   const domains = (arch.roles.lochagos?.instances ?? []).join("/");
-  const direct = (arch.roles.hoplites?.direct_reports ?? []).map((d) => d.id).join("/");
   return (
     `chain_of_command: strategos may not dispatch "${agentName}" directly. ` +
-    `strategos dispatches psiloi, lochagos (${domains}), and direct-report hoplites (${direct}). ` +
-    `Other hoplites are dispatched by their owning lochagos.`
+    `strategos dispatches psiloi and lochagos (${domains}). Lochagoi work directly in their domain — they don't dispatch further.`
   );
 }
 
-function buildAgoraContext(agora: AgoraStore, role: string): string {
+/**
+ * Build the agora context injected into a dispatched subagent's task. Per
+ * single_state, the whole store is never broadcast: with no `contextKeys`,
+ * only key *names* (+ inbox) are surfaced; pass `contextKeys` to inline the
+ * specific values a task actually needs.
+ */
+function buildAgoraContext(agora: AgoraStore, role: string, contextKeys?: string[]): string {
   const snap = agora.snapshot();
-  const keys = Object.keys(snap.keys);
   const inbox = snap.messages.filter((m) => m.to === role || m.to === "*").slice(-5);
   const parts: string[] = [];
-  if (keys.length) parts.push("keys: " + truncate(JSON.stringify(snap.keys), 3000));
+
+  if (contextKeys && contextKeys.length > 0) {
+    const values: Record<string, unknown> = {};
+    const missing: string[] = [];
+    for (const k of contextKeys) {
+      if (Object.prototype.hasOwnProperty.call(snap.keys, k)) values[k] = snap.keys[k];
+      else missing.push(k);
+    }
+    if (Object.keys(values).length) parts.push("keys: " + truncate(JSON.stringify(values), 3000));
+    if (missing.length) parts.push("missing keys (not in agora): " + missing.join(", "));
+  } else {
+    const available = Object.keys(snap.keys);
+    if (available.length) {
+      parts.push(
+        "available agora keys (not inlined — pass contextKeys on phalanx_dispatch to include one): " +
+          available.join(", "),
+      );
+    }
+  }
+
   if (inbox.length) parts.push("inbox: " + JSON.stringify(inbox.map((m) => ({ from: m.from, content: m.content }))));
   if (parts.length === 0) return "";
   return "[agora context — shared state]\n" + parts.join("\n");
@@ -95,18 +112,35 @@ function buildRulesFragment(arch: PhalanxArchitecture): string {
   return lines.join("\n");
 }
 
+function sumUsage(ctx: ExtensionContext): { cost: number; tokens: number } {
+  let cost = 0;
+  let tokens = 0;
+  for (const entry of ctx.sessionManager.getEntries()) {
+    if (entry.type === "message") {
+      const msg = (entry as any).message;
+      if (msg?.usage?.cost?.total) cost += msg.usage.cost.total;
+      if (msg?.usage) tokens += (msg.usage.input ?? 0) + (msg.usage.output ?? 0);
+    }
+  }
+  return { cost, tokens };
+}
+
 function buildRosterFragment(arch: PhalanxArchitecture, agents: AgentConfig[]): string {
   const lines = ["# Phalanx roster (dispatchable roles)", ""];
-  lines.push("- psiloi (scout): fast, cheap recon — dispatch first (scout_first)");
+  lines.push(
+    "- dispatch, don't do — you are a planner and reporter; delegate via phalanx_dispatch. Only act directly for trivial one-step lookups (a single read, a one-line fact)",
+  );
+  lines.push("- psiloi (scout): fast, cheap recon when the target location is unknown (scout_first)");
   for (const inst of arch.roles.lochagos?.instances ?? []) {
     lines.push(`- lochagos-${inst} (coordinator): breaks the objective into tasks for the ${inst} domain`);
   }
-  for (const d of arch.roles.hoplites?.direct_reports ?? []) {
-    lines.push(`- hoplite-${d.id} (specialist, direct report): ${d.responsibility ?? "single-task specialist"}`);
-  }
   lines.push("");
-  lines.push("Dispatch with the phalanx_dispatch tool. Keep all shared state in agora (single_state).");
-  lines.push("On failure, retry at the narrowest scope once, then escalate (shield_wall).");
+  lines.push(
+    "Dispatch with the phalanx_dispatch tool. Keep all shared state in agora (single_state) — pass contextKeys for what a dispatch needs.",
+  );
+  lines.push(
+    "On failure, retry at the narrowest scope once, then the escalation model if configured, then escalate (shield_wall).",
+  );
   lines.push("If ambiguous or retries exhausted, ask the user (consult_the_oracle).");
   const available = agents.map((a) => a.name).join(", ");
   lines.push(`Loaded agents: ${available || "none"}`);
@@ -215,25 +249,39 @@ export default function (pi: ExtensionAPI) {
     label: "Phalanx Dispatch",
     description:
       "Dispatch a phalanx role to execute one task in an isolated context. " +
-      "Roles: psiloi (scout), lochagos-<domain> (coordinator), hoplite-<id> (specialist, direct report). " +
-      "Enforces chain_of_command, shield_wall (retry once then escalate), and consult_the_oracle.",
-    promptSnippet: "Dispatch a phalanx role (psiloi, lochagos-<domain>, hoplite-<id>) for one task",
+      "Roles: psiloi (scout), lochagos-<domain> (coordinator: work/research/build/verify). " +
+      "The strategos is a planner and reporter — dispatch this for anything beyond a trivial one-step lookup. " +
+      "Enforces chain_of_command, shield_wall (retry once, then an escalation model if configured, then escalate), and consult_the_oracle.",
+    promptSnippet: "Dispatch a phalanx role (psiloi, lochagos-<domain>) to do the work — you plan and report, you don't do",
     promptGuidelines: [
-      "Use phalanx_dispatch to delegate work: dispatch psiloi first (scout_first), then lochagos/hoplites. Never dispatch sideways (chain_of_command).",
+      "Dispatch, don't do: delegate via phalanx_dispatch instead of acting directly. Only act directly for trivial one-step lookups. " +
+        "Scout with psiloi first only when the target location is unknown (scout_first). Never dispatch sideways (chain_of_command).",
     ],
     parameters: Type.Object({
       role: Type.String({
-        description: "Role to dispatch: psiloi, lochagos-<domain>, or hoplite-<id> (a direct report)",
+        description: "Role to dispatch: psiloi, or lochagos-<domain> (work/research/build/verify)",
       }),
       task: Type.String({ description: "The single task for the role to execute" }),
-      tool: Type.Optional(
-        Type.String({ description: "For hoplites: the single tool to allow (exactly one tool per hoplite)" }),
+      contextKeys: Type.Optional(
+        Type.Array(Type.String(), {
+          description:
+            "Agora keys this dispatch needs inlined (single_state: request only what's relevant, not the whole store)",
+        }),
       ),
       maxAttempts: Type.Optional(
-        Type.Number({ description: "Maximum attempts before escalation (default 2)", default: 2 }),
+        Type.Number({ description: "Maximum attempts on the primary model before escalation (default 2)", default: 2 }),
+      ),
+      escalationModel: Type.Optional(
+        Type.String({
+          description:
+            "Stronger/pricier model to retry once on before consulting the oracle (default: models.escalation from phalanx-architecture.yaml, if set)",
+        }),
       ),
       askOracleOnExhaust: Type.Optional(
-        Type.Boolean({ description: "Ask the user when retries are exhausted (default true)", default: true }),
+        Type.Boolean({
+          description: "Ask the user when retries (including the escalation model) are exhausted (default true)",
+          default: true,
+        }),
       ),
     }),
 
@@ -257,7 +305,7 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
-      const agentName = roleName; // canonical agent name (psiloi / lochagos-X / hoplite-X)
+      const agentName = roleName; // canonical agent name (psiloi / lochagos-X)
 
       if (!mayDispatch(arch, "strategos", agentName)) {
         return {
@@ -270,9 +318,7 @@ export default function (pi: ExtensionAPI) {
       if (!agent) {
         const hint = isLochagosAgent(agentName)
           ? " Specify a domain, e.g. " + (arch.roles.lochagos?.instances ?? []).map((i) => `lochagos-${i}`).join(", ") + "."
-          : isHopliteAgent(agentName)
-            ? " Known hoplites: " + (arch.roles.hoplites?.direct_reports ?? []).map((d) => `hoplite-${d.id}`).join(", ") + "."
-            : "";
+          : "";
         return {
           content: [
             { type: "text", text: `No agent file for role "${agentName}".${hint}\n\nLoaded agents:\n${formatAgentList(agents)}` },
@@ -281,43 +327,26 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
-      // tools (exactly one for hoplites)
-      let tools = agent.tools ? [...agent.tools] : undefined;
-      if (params.tool) tools = [params.tool];
-      if (isHopliteAgent(agentName)) {
-        if (!tools || tools.length === 0) {
-          return {
-            content: [{ type: "text", text: `Hoplite "${agentName}" requires exactly one tool. Pass tool: "<name>".` }],
-            details: { error: "hoplite_no_tool" },
-          };
-        }
-        if (tools.length > 1) {
-          return {
-            content: [
-              { type: "text", text: `Hoplite "${agentName}" may use exactly one tool (got ${tools.join(", ")}). Split into multiple hoplites.` },
-            ],
-            details: { error: "hoplite_many_tools" },
-          };
-        }
-      }
+      const tools = agent.tools ? [...agent.tools] : undefined;
 
       const maxAttempts = Math.max(1, Math.min(Math.round(params.maxAttempts ?? 2), 5));
       const scope = `dispatch:${agentName}`;
       const model = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+      const escalationModel = params.escalationModel || arch.models.escalation;
 
-      const agoraContext = buildAgoraContext(agora, agentName);
+      const agoraContext = buildAgoraContext(agora, agentName, params.contextKeys);
       const task = agoraContext ? `${agoraContext}\n\n---\n\n${params.task}` : params.task;
 
       await agora.log("dispatch_start", agentName, params.task);
 
-      const runOnce = () =>
+      const runOnce = (modelOverride?: string) =>
         runSubagent({
           cwd: ctx.cwd,
           agentName,
           systemPrompt: agent.systemPrompt,
           task,
           tools,
-          model,
+          model: modelOverride ?? model,
           signal,
           onUpdate: (partial) =>
             onUpdate?.({ content: [{ type: "text", text: `[${agentName}] ${partial || "(running...)"}` }] }),
@@ -345,9 +374,26 @@ export default function (pi: ExtensionAPI) {
         );
         if (attempt < maxAttempts) continue;
 
-        // shield_wall exhausted -> consult the oracle
+        // shield_wall: primary model exhausted -> one retry on the escalation model, if configured
+        if (escalationModel && escalationModel !== model) {
+          await agora.log("dispatch_escalate_model", agentName, `retrying on ${escalationModel}`);
+          const rEsc = await runOnce(escalationModel);
+          lastResult = rEsc;
+          if (!rEsc.isError) {
+            await agora.resetAttempt(scope);
+            await agora.log("dispatch_ok", agentName, `after escalation model (${escalationModel})`);
+            return {
+              content: [{ type: "text", text: rEsc.output || "(no output)" }],
+              details: { agentName, task: params.task, attempts: maxAttempts + 1, exitCode: rEsc.exitCode, model: rEsc.model },
+            };
+          }
+          await agora.log("dispatch_fail", agentName, `escalation model (${escalationModel}) also failed`);
+        }
+
+        // shield_wall (+ escalation model) exhausted -> consult the oracle
         const exhaustedMsg =
-          `shield_wall exhausted for "${agentName}" after ${maxAttempts} attempt(s). ` +
+          `shield_wall exhausted for "${agentName}" after ${maxAttempts} attempt(s)` +
+          `${escalationModel ? ` plus a retry on ${escalationModel}` : ""}. ` +
           `Last error: ${lastResult?.stopReason ?? lastResult?.errorMessage ?? "(none)"}.`;
         if (params.askOracleOnExhaust !== false && ctx.hasUI) {
           const retry = await ctx.ui.confirm(
@@ -355,7 +401,7 @@ export default function (pi: ExtensionAPI) {
             `${exhaustedMsg}\n\nRetry one more time, or stop and escalate to strategos (you)?`,
           );
           if (retry) {
-            const r2 = await runOnce();
+            const r2 = await runOnce(escalationModel || undefined);
             lastResult = r2;
             if (!r2.isError) {
               await agora.resetAttempt(scope);
@@ -408,14 +454,14 @@ export default function (pi: ExtensionAPI) {
       const snap = agora.snapshot();
 
       const domains = (arch.roles.lochagos?.instances ?? []).join(", ");
-      const hoplites = (arch.roles.hoplites?.direct_reports ?? []).map((d) => d.id).join(", ");
       const rules = arch.rules.map((r) => r.id).join(", ");
 
       const lines = [
         "# phalanx status",
         "",
-        `roles: strategos, psiloi, lochagos (${domains}), hoplites (${hoplites}), agora, oracle`,
+        `roles: strategos, psiloi, lochagos (${domains}), agora, oracle`,
         `rules: ${rules}`,
+        `escalation model: ${arch.models.escalation || "(none configured — shield_wall skips straight to the oracle)"}`,
         `agents: ${formatAgentList(agents)}`,
         `agora: ${Object.keys(snap.keys).length} key(s), ${snap.messages.length} message(s), ${snap.log.length} log entry(ies)`,
         `agora path: ${agora.path}`,
@@ -428,25 +474,18 @@ export default function (pi: ExtensionAPI) {
   // commands
   // -------------------------------------------------------------------------
   pi.registerCommand("phalanx", {
-    description: "Show phalanx status with token cost and elapsed time",
+    description: "Show phalanx status with token cost and elapsed time (since last start)",
     handler: async (_args, ctx) => {
-      const arch = loadArchitecture(ctx.cwd);
       const a = getAgora(ctx.cwd);
       const snap = a.snapshot();
-      const domains = (arch.roles.lochagos?.instances ?? []).join(", ");
 
-      // cost: sum usage from message entries
-      let totalCost = 0;
-      let totalTokens = 0;
-      for (const entry of ctx.sessionManager.getEntries()) {
-        if (entry.type === "message") {
-          const msg = (entry as any).message;
-          if (msg?.usage?.cost?.total) totalCost += msg.usage.cost.total;
-          if (msg?.usage) {
-            totalTokens += (msg.usage.input ?? 0) + (msg.usage.output ?? 0);
-          }
-        }
-      }
+      // cost/tokens since last session_start (getEntries() is the whole append-only
+      // file, so subtract the baseline snapshotted at startup/new/resume/fork)
+      const { cost, tokens } = sumUsage(ctx);
+      const costBaseline = (a.get("cost_baseline") as number | undefined) ?? 0;
+      const tokensBaseline = (a.get("tokens_baseline") as number | undefined) ?? 0;
+      const totalCost = Math.max(0, cost - costBaseline);
+      const totalTokens = Math.max(0, tokens - tokensBaseline);
 
       // timer: elapsed since session_start
       const startedAt = a.get("session_started_at") as number | undefined;
@@ -456,8 +495,8 @@ export default function (pi: ExtensionAPI) {
       const timer = startedAt ? `${mins}m ${secs}s` : "—";
 
       ctx.ui.notify(
-        `lochagos (${domains}) | agora: ${Object.keys(snap.keys).length}k ${snap.log.length}log` +
-        ` | cost: \$${totalCost.toFixed(4)} | tokens: ${totalTokens.toLocaleString()} | ${timer}`,
+        `agora: ${Object.keys(snap.keys).length}k ${snap.log.length}log` +
+        ` | \$${totalCost.toFixed(4)} | ${totalTokens.toLocaleString()}tok | ${timer}`,
         "info",
       );
     },
@@ -483,8 +522,12 @@ export default function (pi: ExtensionAPI) {
     if (event.reason === "new") {
       await a.clear();
     }
-    // store start time for /phalanx timer (updates on startup/new/resume/fork)
+    // store start time + cost/token baseline for /phalanx (updates on startup/new/resume/fork)
+    // so "cumulative" means since this start, not since the session file began
     await a.put("session_started_at", Date.now());
+    const { cost, tokens } = sumUsage(ctx);
+    await a.put("cost_baseline", cost);
+    await a.put("tokens_baseline", tokens);
   });
 
   // -------------------------------------------------------------------------
