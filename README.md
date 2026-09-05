@@ -21,23 +21,6 @@ A chapter-driven, first-person narrative adventure game built with Unity (URP). 
 
 ---
 
-## Key Features
-
-| Feature | Description |
-|---|---|
-| **Card-based Dialogue** | Collect cards and use them on NPCs to trigger dialogue trees. Cards can target specific NPCs or be usable on all. |
-| **Chapter Progression** | The story advances through chapters. Each chapter repositions actors (NPCs, player, objects) via `IPositionable`. |
-| **Swap Puzzle** | A simple click-to-select, click-to-swap puzzle with a dedicated camera and input mode. |
-| **First-Person Action** | Full movement (walk, sprint, jump, crouch) with the new Unity Input System. |
-| **NPC Facial Expressions** | NPCs blend between blend-shape morph targets (Happy, Sad, Angry, Surprised, etc.) during dialogue. |
-| **Atmospheric FX** | Footprint decals along spline paths, pulsing human shadows, looping sound sources that grow in volume. |
-| **Fade / Toast UI** | Scene transitions with fade-to-black, toast notifications for game events. |
-| **Plain C# Architecture** | Core systems are plain C# singletons wired via a DI container, with a thin `GameDriver` MonoBehaviour bridging Unity's lifecycle. |
-
----
-
-
-
 ## Getting Started
 
 ### Prerequisites
