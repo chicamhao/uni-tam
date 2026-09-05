@@ -111,7 +111,7 @@ namespace Assets.Scripts.Progressions
         private void ApplyLine(DialogueLine line)
         {
             Assert.IsNotNull(_context.CurrentActor, "CurrentActor is null when applying dialogue line.");
-            var expr = _context.CurrentActor.GetComponent<Expression>();
+            var expr = _context.CurrentActor.GetComponent<ExpressionHandle>();
             if (expr != null) expr.ApplyExpression(line.Expression);
 
             _lineTimer.SetDuration(line.DisplayDuration);

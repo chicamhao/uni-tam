@@ -11,25 +11,35 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e38e993a976d4cd4c9b0e407e2833752, type: 3}
   m_Name: ChapterSettings
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Assets.Scripts.Settings.ChapterSettings
   Entries:
   - ActorID: player
     Chapter: 1
     SpawnPointID: Spawn_Player_Start
     Anim: {fileID: 0}
     IsVisible: 1
-  - ActorID: npc_guard
+  - ActorID: cam
     Chapter: 1
-    SpawnPointID: Spawn_Guard
+    SpawnPointID: Spawn_Cam_Bed
+    Anim: {fileID: 0}
+    IsVisible: 1
+  - ActorID: sm
+    Chapter: 1
+    SpawnPointID: Spawn_Table_Sit
     Anim: {fileID: 0}
     IsVisible: 1
   - ActorID: player
     Chapter: 2
-    SpawnPointID: Spawn_Player_Ch2
+    SpawnPointID: Spawn_Player_Bed
     Anim: {fileID: 0}
     IsVisible: 1
-  - ActorID: npc_guard
+  - ActorID: cam
     Chapter: 2
-    SpawnPointID: Spawn_Guard_Ch2
+    SpawnPointID: Spawn_Cam_Bed
     Anim: {fileID: 0}
-    IsVisible: 0
+    IsVisible: 1
+  - ActorID: sm
+    Chapter: 2
+    SpawnPointID: Spawn_SM_Bed
+    Anim: {fileID: 0}
+    IsVisible: 1

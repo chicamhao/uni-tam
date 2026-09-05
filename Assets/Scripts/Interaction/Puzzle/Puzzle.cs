@@ -46,6 +46,7 @@ namespace Assets.Scripts.Interaction.Puzzle
 
         private void HandleClick()
         {
+            if (_puzzleCamera == null) return;
             var ray = _puzzleCamera.ScreenPointToRay(UnityEngine.Input.mousePosition);
             if (Physics.Raycast(ray, out var hit))
             {

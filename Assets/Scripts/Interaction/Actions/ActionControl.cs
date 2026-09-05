@@ -1,10 +1,9 @@
 using UnityEngine;
 using UnityEngine.Assertions;
-using Assets.Scripts.Core;
 using Assets.Scripts.Interaction.Input;
-using Assets.Scripts.Interaction.Interfaces;
 using Assets.Scripts.Settings;
 using Assets.Scripts.Context;
+using Assets.Scripts.Interfaces;
 
 namespace Assets.Scripts.Interaction.Actions
 {
@@ -13,6 +12,8 @@ namespace Assets.Scripts.Interaction.Actions
     /// <summary>Orchestrates all player actions (movement, jump, crouch, interact, skip) each frame.</summary>
     public sealed class ActionControl : MonoBehaviour
     {
+        [SerializeField] CharacterController _controller;
+
         public ActionContext Context => _context;
         private ActionContext _context;
 
@@ -28,17 +29,17 @@ namespace Assets.Scripts.Interaction.Actions
         /// <summary>
         /// Called by GameDriver after scene load. Accepts IDialogue for SkipLineAction.
         /// </summary>
-        public void Initialize(ActionSettings settings, Assets.Scripts.Interfaces.IDialogue dialogue)
+        public void Initialize(ActionSettings settings, IDialogue dialogue)
         {
-            _settings = settings;
+            Assert.IsNotNull(_controller);
 
-            var controller = GetComponent<CharacterController>();
-            Assert.IsNotNull(controller);
+            Assert.IsNotNull(settings);
+            _settings = settings;
 
             var input = GetComponent<InputHandle>();
             Assert.IsNotNull(input);
 
-            _context = new ActionContext(_settings, controller, input);
+            _context = new ActionContext(_settings, _controller, input);
 
             _crouchAction = new CrouchAction(_context, _settings.Crouch);
             _jumpAction = new JumpAction(_context, _settings.Jump);
@@ -64,7 +65,5 @@ namespace Assets.Scripts.Interaction.Actions
             _skipLineAction.Skip();
             _interactAction.Interact();
         }
-
-
     }
 }

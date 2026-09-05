@@ -11,8 +11,9 @@
  *                      and consult_the_oracle escalation
  *     phalanx_status   inspect roles, rules, agents, and agora state
  *   commands:
- *     /phalanx          summary: roles, agora state, token cost, elapsed time
- *     /phalanx-new      clear agora runtime state
+ *     /phalanx-muster    summary: roles, agora state, token cost, elapsed time
+ *     /phalanx-reform    clear agora runtime state
+ *     /phalanx-arrange   self-extend: read YAML and create missing agent files
  */
 
 import * as fs from "node:fs";
@@ -151,7 +152,61 @@ function buildRosterFragment(arch: PhalanxArchitecture, agents: AgentConfig[]): 
 // Agent file templates (for extend commands)
 // ---------------------------------------------------------------------------
 
+function generateLochagosAgentFile(domain: string): string {
+  const descMap: Record<string, string> = {
+    work: "Generalist coordinator for a small or medium objective — investigate, implement, and verify in one pass.",
+    research: "Coordinator for the research domain — investigate, locate, and understand code and assets, as the first pass of a research/build/verify split.",
+    build: "Coordinator for the build domain — implement changes in code and scripts, as one pass of a research/build/verify split.",
+    verify: "Coordinator for the verify domain — check, test, and confirm work is correct, as the final pass of a research/build/verify split.",
+  };
+  const toolsMap: Record<string, string> = {
+    work: "read, edit, write, grep, find, ls, bash",
+    research: "read, grep, find, ls, bash",
+    build: "read, edit, write, bash",
+    verify: "read, grep, bash",
+  };
+  const desc = descMap[domain] || `Coordinator for the ${domain} domain.`;
+  const tools = toolsMap[domain] || "read, edit, write, grep, find, ls, bash";
+  const conventions = domain === "work" || domain === "build" ? "\nconventions: CONVENTIONS.yaml" : "";
+  const existingHint = domain === "work" ? "" : `\n\nYou exist for the large-effort case where a separate research pass and verify pass may precede or follow you.`;
 
+  return `---
+name: lochagos-${domain}
+description: ${desc}
+tools: ${tools}${conventions}
+---
+
+You are a **lochagos** (coordinator) for the **${domain}** domain. You report to the strategos.
+
+Your job: handle work in the ${domain} domain. Return what changed and how it was verified.
+
+**Project conventions:** load and follow \`CONVENTIONS.yaml\` from the project root.${existingHint}
+
+Rules:
+- chain_of_command: escalate failure to the strategos, never sideways.
+- shield_wall: on failure, retry at the narrowest scope once, then escalate.
+- single_state: no private state; shared state belongs in agora.
+`;
+}
+
+const PSILOI_AGENT_TEMPLATE = `---
+name: psiloi
+description: Scout — fast, cheap recon of the codebase when the target location is unknown
+tools: read, grep, find, ls
+---
+
+You are a **psiloi** (scout) in the phalanx. You report to the strategos.
+
+Your job: fast, cheap reconnaissance. Probe the codebase and return a compressed,
+precise answer — file paths, line references, and the minimum context a lochagos
+needs to act. Do NOT modify anything; you are read-only.
+
+Rules:
+- scout_first: opt-in — you run when the target is unknown, not as a mandatory first step.
+- single_state: do not keep private state; report findings back so they can be
+  recorded in agora.
+- If you cannot answer with certainty, say so plainly and suggest what to probe next.
+`;
 
 // ---------------------------------------------------------------------------
 // Extension
@@ -473,7 +528,7 @@ export default function (pi: ExtensionAPI) {
   // -------------------------------------------------------------------------
   // commands
   // -------------------------------------------------------------------------
-  pi.registerCommand("phalanx", {
+  pi.registerCommand("phalanx-muster", {
     description: "Show phalanx status with token cost and elapsed time (since last start)",
     handler: async (_args, ctx) => {
       const a = getAgora(ctx.cwd);
@@ -505,7 +560,7 @@ export default function (pi: ExtensionAPI) {
 
 
   // single-word command — pi only parses the first word after / as the command name
-  pi.registerCommand("phalanx-new", {
+  pi.registerCommand("phalanx-reform", {
     description: "Clear the agora shared memory (keys, messages, log, attempts)",
     handler: async (_args, ctx) => {
       const agora = getAgora(ctx.cwd);
@@ -515,14 +570,67 @@ export default function (pi: ExtensionAPI) {
   });
 
   // -------------------------------------------------------------------------
-  // auto-clear agora on /new (session_start with reason "new")
+  // /phalanx-arrange — self-extend: read YAML and create missing agent files
+  // -------------------------------------------------------------------------
+  pi.registerCommand("phalanx-arrange", {
+    description: "Read phalanx-architecture.yaml and create missing agent files for any new roles",
+    handler: async (_args, ctx) => {
+      const arch = loadArchitecture(ctx.cwd);
+      const agentsDir = path.join(ctx.cwd, ".pi", "agents");
+      fs.mkdirSync(agentsDir, { recursive: true });
+
+      const created: string[] = [];
+      const existed: string[] = [];
+      const removed: string[] = [];
+
+      const check = (filename: string, template: string) => {
+        const filePath = path.join(agentsDir, filename);
+        if (fs.existsSync(filePath)) {
+          existed.push(filename);
+        } else {
+          fs.writeFileSync(filePath, template, "utf-8");
+          created.push(filename);
+        }
+      };
+
+      check("psiloi.md", PSILOI_AGENT_TEMPLATE);
+
+      const instances = arch.roles.lochagos?.instances ?? [];
+      const instSet = new Set(instances);
+      for (const inst of instances) {
+        check(`lochagos-${inst}.md`, generateLochagosAgentFile(inst));
+      }
+
+      // clean up agent files for instances removed from the YAML
+      if (fs.existsSync(agentsDir)) {
+        for (const entry of fs.readdirSync(agentsDir, { withFileTypes: true })) {
+          if (!entry.isFile() || !entry.name.startsWith("lochagos-") || !entry.name.endsWith(".md")) continue;
+          const domain = entry.name.slice("lochagos-".length, -".md".length);
+          if (!instSet.has(domain)) {
+            fs.unlinkSync(path.join(agentsDir, entry.name));
+            removed.push(entry.name);
+          }
+        }
+      }
+
+      const parts: string[] = [];
+      if (created.length) parts.push(`created ${created.join(", ")}`);
+      if (existed.length) parts.push(`existing ${existed.join(", ")}`);
+      if (removed.length) parts.push(`removed ${removed.join(", ")}`);
+      const msg = parts.length ? `arranged: ${parts.join("; ")}` : "arranged: nothing to do";
+      ctx.ui.notify(msg, "info");
+    },
+  });
+
+  // -------------------------------------------------------------------------
+  // auto-clear agora on session_start with reason "new"
   // -------------------------------------------------------------------------
   pi.on("session_start", async (event, ctx: ExtensionContext) => {
     const a = getAgora(ctx.cwd);
     if (event.reason === "new") {
       await a.clear();
     }
-    // store start time + cost/token baseline for /phalanx (updates on startup/new/resume/fork)
+    // store start time + cost/token baseline for /phalanx-muster (updates on startup/new/resume/fork)
     // so "cumulative" means since this start, not since the session file began
     await a.put("session_started_at", Date.now());
     const { cost, tokens } = sumUsage(ctx);

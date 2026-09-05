@@ -39,32 +39,42 @@ namespace Assets.Scripts.Interaction.Input
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
 
-            BindAction(ref _moveAction, "Move");
-            BindAction(ref _lookAction, "Look");
-            BindAction(ref _jumpAction, "Jump");
-            BindAction(ref _sprintAction, "Sprint");
-            BindAction(ref _crouchAction, "Crouch");
-            BindAction(ref _useAction, "Use");
-            BindAction(ref _interactAction, "Interact");
-            BindAction(ref _quitAction, "Quit");
-            BindAction(ref _startAction, "Start");
-            BindAction(ref _skipAction, "Skip");
+            var asset = InputSystem.actions;
+            if (asset == null)
+            {
+                Debug.LogWarning("[InputHandle] InputSystem.actions is null — no default input action asset assigned in Project Settings. Controls disabled.");
+                InputEnabled = false;
+                return;
+            }
 
-            _moveAction.Enable();
-            _lookAction.Enable();
-            _jumpAction.Enable();
-            _sprintAction.Enable();
-            _crouchAction.Enable();
-            _useAction.Enable();
-            _interactAction.Enable();
-            _skipAction.Enable();
-            _quitAction.Enable();
-            _startAction.Enable();
+            BindAction(ref _moveAction, asset, "Move");
+            BindAction(ref _lookAction, asset, "Look");
+            BindAction(ref _jumpAction, asset, "Jump");
+            BindAction(ref _sprintAction, asset, "Sprint");
+            BindAction(ref _crouchAction, asset, "Crouch");
+            BindAction(ref _useAction, asset, "Use");
+            BindAction(ref _interactAction, asset, "Interact");
+            BindAction(ref _quitAction, asset, "Quit");
+            BindAction(ref _startAction, asset, "Start");
+            BindAction(ref _skipAction, asset, "Skip");
+
+            _moveAction?.Enable();
+            _lookAction?.Enable();
+            _jumpAction?.Enable();
+            _sprintAction?.Enable();
+            _crouchAction?.Enable();
+            _useAction?.Enable();
+            _interactAction?.Enable();
+            _skipAction?.Enable();
+            _quitAction?.Enable();
+            _startAction?.Enable();
         }
 
-        private void BindAction(ref InputAction action, string name)
+        private void BindAction(ref InputAction action, InputActionAsset asset, string name)
         {
-            action = InputSystem.actions.FindAction("Player/" + name);
+            action = asset.FindAction("Player/" + name);
+            if (action == null)
+                Debug.LogWarning($"[InputHandle] Action 'Player/{name}' not found in input actions asset.");
         }
 
         private void LateUpdate()

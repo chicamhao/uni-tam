@@ -32,7 +32,10 @@ namespace Assets.Scripts.Interaction.Actions
 
             _cameraVerticalAngle += _context.Input.GetLookInputsVertical() * rotateSpeed;
             _cameraVerticalAngle = Mathf.Clamp(_cameraVerticalAngle, -89f, 89f);
-            Camera.main.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0, 0);
+
+            var cam = Camera.main;
+            if (cam != null)
+                cam.transform.localEulerAngles = new Vector3(_cameraVerticalAngle, 0, 0);
         }
 
         public void Move()

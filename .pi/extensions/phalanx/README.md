@@ -13,7 +13,7 @@ skills. Read order mirrors the file: **roles → rules → extend**.
   *consult_the_oracle* (asks you when retries are exhausted). Scopes agora
   context per dispatch via `contextKeys` instead of broadcasting the whole store.
 - **`phalanx_status`** — reports roles, rules, loaded agents, and agora state.
-- **Commands** — `/phalanx`, `/phalanx-new`.
+- **Commands** — `/phalanx-muster`, `/phalanx-reform`, `/phalanx-arrange`.
 
 ## Strategos prompt (`.pi/agent/AGENTS.md`)
 

@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Assets.Scripts.Interfaces;
 using Assets.Scripts.Interaction.Interfaces;
@@ -16,12 +14,10 @@ namespace Assets.Scripts.Progressions
     public sealed class Progression : IProgression
     {
         private readonly List<IPositionable> _positionables = new();
-        private Transform[] _spawnPoints = Array.Empty<Transform>();
         private ChapterSettings _chapters;
 
         public void Init(ProgressionSettings progressSettings)
         {
-            _spawnPoints = progressSettings.SpawnPoints;
             _chapters = progressSettings.ChapterSettings;
         }
 
@@ -66,7 +62,8 @@ namespace Assets.Scripts.Progressions
         private Transform FindSpawnPoint(string spawnPointID)
         {
             if (string.IsNullOrEmpty(spawnPointID)) return null;
-            return _spawnPoints.FirstOrDefault(sp => sp != null && sp.name == spawnPointID);
+            var go = GameObject.Find(spawnPointID);
+            return go != null ? go.transform : null;
         }
     }
 }

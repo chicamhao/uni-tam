@@ -1,0 +1,12 @@
+name: Unity Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: game-ci/unity-test-runner@v4
+        with:
+          unity-version: 6000.0.23f1
+          project-path: .
+          test-mode: all

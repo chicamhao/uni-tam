@@ -1,6 +1,5 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Assertions;
 using Assets.Scripts.Interaction.Interfaces;
 using Assets.Scripts.Settings;
 
@@ -31,13 +30,9 @@ namespace Assets.Scripts.Characters
             return animator != null ? animator.GetBoneTransform(HumanBodyBones.Head) : null;
         }
 
-        // ── IPositionable ─────────────────────────────────────────────
 
-        /// <summary>Returns the ActorID this positionable entity represents.</summary>
         public string GetActorID() => _identifier.ActorID;
 
-        /// <summary>Repositions and configures the actor to match a chapter entry.
-        /// Uses a fade transition when a MaterialHandle is present, otherwise applies instantly.</summary>
         public void ApplyState(ChapterEntry state, Transform spawnPoint)
         {
             var materialHandle = GetComponent<MaterialHandle>();

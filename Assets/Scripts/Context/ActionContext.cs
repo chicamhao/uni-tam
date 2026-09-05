@@ -21,13 +21,13 @@ namespace Assets.Scripts.Context
 
         public IInteractable InteractObject { get; set; }
 
-        public CharacterController Controller { get; }
+        public CharacterController Controller => _controller;
         private readonly CharacterController _controller;
 
-        public InputHandle Input { get; }
+        public InputHandle Input => _input;
         private readonly InputHandle _input;
 
-        public ActionSettings Settings { get; }
+        public ActionSettings Settings => _settings;
         private readonly ActionSettings _settings;
 
         public ActionContext(ActionSettings settings, CharacterController controller, InputHandle input)

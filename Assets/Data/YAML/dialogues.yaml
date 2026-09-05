@@ -1,0 +1,14 @@
+dialogue_entries:
+  - card_id: card_cam
+    actor_id: npc_cam
+    actor_display_name: Cám
+    lines:
+      - text: "Tôi tên là Cám."
+        duration: 3
+        expression_id:
+      - text: "Mẹ bảo tôi sinh ra vào mùa gặt, người thơm mùi cám mới nên đặt tên thế.."
+        duration: 3.5
+        expression_id:
+      - text: "Tôi khờ khạo lắm, không nhanh nhẹn và đảm đang như chị, có gì Thầy đừng cười nhé."
+        duration: 3
+        expression_id:

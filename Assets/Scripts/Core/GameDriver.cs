@@ -47,7 +47,7 @@ namespace Assets.Scripts.Core
             Assert.IsNotNull(_actionSettings);
             Assert.IsNotNull(_dialogSettings);
 
-            // Construct all services with new T() 
+            // Construct all services with new T()
             // Order: no-dependency services first, then dependent services.
             _gui = new Gui();
             _progression = new Progression();
@@ -59,32 +59,30 @@ namespace Assets.Scripts.Core
             // Wire scene refs to Gui via GuiGameDriver
             _guiDriver.WireUp(_gui, _dialogue);
 
-            // Init leaf services (no service deps) 
+            // Init leaf services (no service deps)
             _progression.Init(_progressSettings);
             _progression.DiscoverPositionables();
             _puzzle.Init(_puzzleCamera);
 
-            // Init dependent services with explicit deps 
+            // Init dependent services with explicit deps
             _playerState.Init(_progressSettings.ReturnCard, _progressSettings.DefaultCards);
             _dialogue.Init(_dialogSettings);
             _director.Init(_playerCamera, _dialogue, _progression);
 
-            // Find scene services once and inject ──────────────────────
+            // Find scene services once and inject
             _actionControl = FindAnyObjectByType<ActionControl>();
-            Assert.IsNotNull(_actionControl, "ActionControl must exist in the scene.");
+            Assert.IsNotNull(_actionControl);
             _inputHandle = FindAnyObjectByType<InputHandle>();
 
-            // Wire up player actions ────────────────────────────────────
-            _actionControl?.Initialize(_actionSettings, _dialogue);
+            _actionControl.Initialize(_actionSettings, _dialogue);
 
-            // InputHandle must exist on ActionControl's GameObject (guaranteed by [RequireComponent])
-            Assert.IsNotNull(_inputHandle, "InputHandle not found after ActionControl.Initialize.");
+            Assert.IsNotNull(_inputHandle);
 
             // Inject service refs into scene MonoBehaviours ─────────────
             var actors = FindObjectsByType<Actor>();
             foreach (var actor in actors)
             {
-                var interaction = actor.GetComponent<Characters.Interaction>();
+                var interaction = actor.GetComponent<InteractionHandle>();
                 if (interaction != null) interaction.DialogueRef = _dialogue;
             }
 

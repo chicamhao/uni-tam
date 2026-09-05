@@ -1,0 +1,30 @@
+card_definitions:
+  - card_id: card_cam
+    display_name: Cám
+    description: cute girl.
+    icon_path:
+    target_actor_ids: []
+
+  - card_id: card_sm
+    display_name: Mẹ kế
+    description: old mom.
+    icon_path:
+    target_actor_ids: []
+
+  - card_id: card_betelPalmRoot
+    display_name: Gốc cau
+    description: Tương tác với gốc cây cau trong vườn
+    icon_path:
+    target_actor_ids: []
+
+  - card_id: card_bruise
+    display_name: Vết bầm của Cám
+    description: Tương tác với Cám (click vào vết bầm trên tay)
+    icon_path:
+    target_actor_ids: []
+
+  - card_id: card_pa
+    display_name: Xoan đào
+    description: Tương tác với cây cau trong vườn
+    icon_path:
+    target_actor_ids: []

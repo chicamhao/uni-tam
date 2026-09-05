@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 535c16e74f83d024b8089521fd5d857c, type: 3}
+  m_Name: ProgressionSettings
+  m_EditorClassIdentifier: 
+  SpawnPoints:
+  - {fileID: 0}
+  - {fileID: 110267905}
+  - {fileID: 691182049}
+  - {fileID: 848592589}
+  ChapterSettings: {fileID: 11400000, guid: f6910f6c33bdc0942a60feb3b2c0de54, type: 2}
+  DefaultCards:
+  - {fileID: 11400000, guid: c2480dfc14fe9034bb0543f5e32ba636, type: 2}
+  - {fileID: 11400000, guid: 6e4780f41f7811d49a3b8e048899d897, type: 2}
+  ReturnCard: {fileID: 11400000, guid: a2256e540323c27499a4c4800ec85961, type: 2}
